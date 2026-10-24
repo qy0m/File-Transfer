@@ -1,0 +1,16 @@
+node_modules
+.git
+.env
+.env.*
+*.before-*
+.venv
+var
+
+**/__pycache__
+**/*.pyc
+**/*.sqlite3
+
+gateway/dist
+
+frontend/public/assets/js
+frontend/public/assets/vendor
