@@ -4,9 +4,11 @@ WORKDIR /app
 
 COPY api/requirements.txt ./requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && pip check
 
 COPY api/app ./app
+
+RUN python -m compileall -q app
 
 RUN useradd --uid 10001 --create-home transfer \
     && mkdir -p /data/database /data/uploads \

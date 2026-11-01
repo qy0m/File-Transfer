@@ -3,8 +3,8 @@
 $register = ($accountMode ?? 'login') === 'register';
 
 $title = $register
-    ? 'Create account — File Transfer'
-    : 'Sign in — File Transfer';
+    ? 'Create account — Filevoya'
+    : 'Sign in — Filevoya';
 
 header('Cache-Control: no-store');
 
@@ -12,6 +12,8 @@ require __DIR__ . '/header.php';
 ?>
 
 <div class="reading-column auth-column">
+<header class="page-intro">
+<span class="icon-badge tone-red"><?php filevoya_icon('person-lock'); ?></span>
     <p class="text-uppercase text-secondary small fw-semibold">
         Your account
     </p>
@@ -23,6 +25,8 @@ require __DIR__ . '/header.php';
     <p class="text-secondary">
         Keep your current uploads together in one dashboard.
     </p>
+
+    </header>
 
     <section class="card mt-4">
         <div class="card-body">

@@ -74,12 +74,12 @@ function transfer_lookup(string $id): array
             }
         }
 
-        $body = stream_get_contents($stream, 262_145);
+        $body = stream_get_contents($stream, 1_048_577);
         $metadata = stream_get_meta_data($stream);
 
         if (
             $body === false ||
-            strlen($body) > 262_144 ||
+            strlen($body) > 1_048_576 ||
             ($metadata['timed_out'] ?? false)
         ) {
             throw new TransferException(
@@ -134,11 +134,11 @@ function transfer_lookup(string $id): array
         !is_int($data['expires_at'] ?? null) ||
         !is_int($data['total_bytes'] ?? null) ||
         $data['total_bytes'] < 0 ||
-        $data['total_bytes'] > 5_000_000_000 ||
+        $data['total_bytes'] > 9_007_199_254_740_991 ||
         !is_array($data['files'] ?? null) ||
         !array_is_list($data['files']) ||
         count($data['files']) < 1 ||
-        count($data['files']) > 25
+        count($data['files']) > 200
     ) {
         throw new TransferException(
             502,
@@ -171,7 +171,7 @@ function transfer_lookup(string $id): array
             preg_match('/[\x00-\x1F\x7F]/', $file['name']) !== 0 ||
             !is_int($file['size_bytes'] ?? null) ||
             $file['size_bytes'] < 0 ||
-            $file['size_bytes'] > 5_000_000_000
+            $file['size_bytes'] > 9_007_199_254_740_991
         ) {
             throw new TransferException(
                 502,
@@ -237,6 +237,7 @@ function transfer_lookup(string $id): array
         'expires_at' => $data['expires_at'],
         'total_bytes' => $total,
         'files' => $files,
+        'encrypted' => ($data['encryption']['version'] ?? null) === 1,
     ];
 }
 

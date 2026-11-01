@@ -1,0 +1,263 @@
+/* About page: charcoal surfaces with Filevoya's crimson accent. */
+
+.about-page {
+    max-width: 58rem;
+    --about-red: #780606;
+    --about-muted: #b1b5bf;
+}
+
+.about-page .about-icon {
+    flex-shrink: 0;
+    vertical-align: -0.15em;
+}
+
+.about-page .about-hero {
+    padding: clamp(1.5rem, 5vw, 3rem);
+    margin-bottom: 1.5rem;
+    border: 1px solid #34373f;
+    border-radius: 1.25rem;
+    background: #191b1f;
+}
+
+.about-page .about-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--about-red);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.about-page .about-eyebrow .about-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.about-page h1 {
+    margin: 1.25rem 0;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 750;
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+}
+
+.about-page h1 span {
+    color: var(--about-red);
+}
+
+.about-page .about-intro {
+    max-width: 39rem;
+    margin-bottom: 1.5rem;
+    color: #d2d4db;
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.about-page .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.about-page .btn .about-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.about-page .about-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin: 2rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid #780606;
+}
+
+.about-page .about-stats dt {
+    color: #ffffff;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.about-page .about-stats dd {
+    margin: 0.2rem 0 0;
+    color: var(--about-muted);
+    font-size: 0.8rem;
+}
+
+.about-page .about-panel {
+    padding: 1.65rem;
+    border: 1px solid #34373f;
+    border-radius: 1rem;
+    background: #191b1f;
+}
+
+.about-page .about-guest,
+.about-page .about-disclosure {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.about-page .about-icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    border: 1px solid;
+    border-radius: 0.8rem;
+}
+
+.about-page .about-tone-red {
+    color: #780606;
+    background: #780606;
+    border-color: #780606;
+}
+
+.about-page .about-tone-teal {
+    color: #80dcc8;
+    background: #17312e;
+    border-color: #315b53;
+}
+
+.about-page .about-tone-violet {
+    color: #c1b1ff;
+    background: #29223c;
+    border-color: #504169;
+}
+
+.about-page .about-tone-amber {
+    color: #f2cb88;
+    background: #332a1c;
+    border-color: #665132;
+}
+
+.about-page .about-kicker {
+    margin-bottom: 0.55rem;
+    color: var(--about-red);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.about-page h2 {
+    margin-bottom: 1rem;
+    font-size: clamp(1.25rem, 3vw, 1.6rem);
+    font-weight: 700;
+}
+
+.about-page h3 {
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+.about-page p {
+    line-height: 1.75;
+}
+
+.about-page .about-muted {
+    color: var(--about-muted);
+}
+
+.about-page .about-section {
+    margin-block: 2.5rem 1.5rem;
+}
+
+.about-page .about-section-heading {
+    margin-bottom: 1.5rem;
+}
+
+.about-page .about-feature .about-icon-box {
+    margin-bottom: 1.25rem;
+}
+
+.about-page .about-feature h3 {
+    margin-bottom: 0.75rem;
+}
+
+.about-page .about-feature p {
+    font-size: 0.92rem;
+}
+
+.about-page .about-lifetime {
+    margin-bottom: 1.5rem;
+}
+
+.about-page .about-inline-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+}
+
+.about-page .about-inline-heading .about-icon {
+    color: var(--about-red);
+}
+
+.about-page .about-disclosure {
+    padding: 1.5rem;
+    border: 1px solid #665132;
+    border-radius: 1rem;
+    background: #211e19;
+}
+
+.about-page .about-disclosure h2 {
+    margin-bottom: 0.65rem;
+    color: #f2cb88;
+    font-size: 1rem;
+}
+
+.about-page .about-disclosure p {
+    color: #d1c7b7;
+    font-size: 0.92rem;
+}
+
+@media (max-width: 575.98px) {
+    .about-page .about-stats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .about-page .about-stats > div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .about-page .about-stats dt {
+        font-size: 1.15rem;
+    }
+
+    .about-page .about-stats dd {
+        text-align: right;
+    }
+
+    .about-page .about-guest,
+    .about-page .about-disclosure {
+        flex-direction: column;
+    }
+
+    .about-page .about-panel {
+        padding: 1.35rem;
+    }
+}
+
+/* Keep red icons visible on charcoal backgrounds. */
+.about-page .about-tone-red {
+    color: #780606;
+    background: #191b1f;
+    border-color: #780606;
+}
+
+.about-page .about-tone-teal,
+.about-page .about-tone-violet,
+.about-page .about-tone-amber {
+    background: #191b1f;
+}

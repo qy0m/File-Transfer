@@ -1,7 +1,20 @@
 </main>
 
-<footer class="container pb-4 text-secondary small">
-    File Transfer · Development foundation
+<footer class="container site-footer">
+    <div>
+        <a class="footer-brand" href="/">Filevoya</a>
+        <span>Temporary files. Simple sharing. Secure hosting.</span>
+    </div>
+
+    <div class="d-flex flex-wrap gap-4">
+        <a href="/about.php">Privacy &amp; security</a>
+        <a href="/report.php">Report abuse</a>
+
+        <a href="https://github.com/qy0m/File-Transfer" rel="noreferrer">
+            <?php filevoya_icon('github'); ?>
+            Source code
+        </a>
+    </div>
 </footer>
 
 <script

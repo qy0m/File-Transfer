@@ -6,6 +6,7 @@
 >
     <div class="card-body">
         <h2 id="storage-heading" class="h5 mb-3">
+            <span class="icon-badge tone-teal"><?php filevoya_icon('hdd'); ?></span>
             Upload storage
         </h2>
 
@@ -53,7 +54,10 @@
             Checking storage…
         </p>
 
-        <p class="small text-secondary mt-2 mb-0">
+        <p
+            id="storage-allowance"
+            class="small text-secondary mt-2 mb-0"
+        >
             Your upload storage allowance is 5 GB.
         </p>
     </div>

@@ -8,6 +8,7 @@ RUN npm ci
 
 COPY frontend/tsconfig.json frontend/tsconfig.json
 COPY frontend/src frontend/src
+COPY frontend/worker frontend/worker
 
 COPY gateway/tsconfig.json gateway/tsconfig.json
 COPY gateway/src gateway/src

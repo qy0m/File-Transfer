@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from .abuse import router as abuse_router
 from .auth import router as auth_router
 from .auth import COOKIE_NAME, COOKIE_SECURE
 from .cleanup import cleanup_loop
@@ -39,6 +40,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(abuse_router)
 app.include_router(transfer_router)
 app.include_router(uploads_router)
 app.include_router(downloads_router)

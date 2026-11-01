@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 
+from .encryption import encryption_record
 from .database import connect
 from .file_store import open_stored_file, path_parts
 
@@ -236,6 +237,9 @@ def download_archive(
     folder: str | None = Query(default=None, max_length=1024),
 ):
     rows = download_records(transfer_id)
+    with connect() as connection:
+        if encryption_record(connection, transfer_id) is not None:
+            raise HTTPException(409, "Encrypted archives must be decrypted and assembled in your browser.")
 
     try:
         if folder is not None:

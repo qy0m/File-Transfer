@@ -9,7 +9,28 @@ function escape(string $value): string
     );
 }
 
-$title = $title ?? 'File Transfer';
+function filevoya_icon(string $name, string $class = 'site-icon'): void
+{
+    ?>
+    <svg
+        class="<?= escape($class) ?>"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        focusable="false"
+    >
+        <use href="/assets/icons/filevoya-icons.svg#<?= escape($name) ?>"></use>
+    </svg>
+    <?php
+}
+
+$title = $title ?? 'Filevoya';
 ?>
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
@@ -32,16 +53,28 @@ $title = $title ?? 'File Transfer';
         rel="stylesheet"
         href="/assets/css/styles.css"
     >
+
+    <link rel="stylesheet" href="/assets/css/theme.css">
+
+    <?php foreach (($pageStylesheets ?? []) as $stylesheet): ?>
+        <link
+            rel="stylesheet"
+            href="<?= escape($stylesheet) ?>"
+        >
+    <?php endforeach; ?>
+
+    <link rel="stylesheet" href="/assets/css/modern.css">
 </head>
 <body>
 <nav class="navbar site-nav" aria-label="Main navigation">
     <div class="container">
         <a class="navbar-brand fw-bold" href="/">
-            File Transfer
+            <?php filevoya_icon('cloud-arrow-up'); ?>
+            Filevoya
         </a>
 
         <div class="site-nav-links">
-            <a class="nav-links" href="/about.php">
+            <a class="nav-link" href="/about.php">
                 About
             </a>
 

@@ -26,6 +26,32 @@ CREATE TABLE IF NOT EXISTS transfers (
         CHECK(total_bytes >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS transfer_encryption (
+    transfer_id TEXT PRIMARY KEY REFERENCES transfers(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL CHECK(version = 1),
+    manifest TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS abuse_reports (
+    id TEXT PRIMARY KEY,
+    transfer_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    reporter_hash TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'resolved')),
+    UNIQUE(transfer_id, reporter_hash)
+);
+CREATE INDEX IF NOT EXISTS abuse_reports_created ON abuse_reports(created_at);
+
+CREATE TABLE IF NOT EXISTS client_upload_budgets (
+    client_hash TEXT PRIMARY KEY,
+    reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),
+    transfers_created INTEGER NOT NULL CHECK(transfers_created >= 0),
+    resets_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS client_upload_budgets_expiry
+    ON client_upload_budgets(resets_at);
+
 CREATE TABLE IF NOT EXISTS files (
     id TEXT PRIMARY KEY,
     transfer_id TEXT NOT NULL
@@ -143,6 +169,25 @@ def initialize_database() -> None:
         connection.execute("PRAGMA journal_mode = WAL")
         connection.executescript(SCHEMA)
 
+        # Serialize schema upgrades across API workers.
+        connection.execute("BEGIN IMMEDIATE")
+
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(users)")
+        }
+
+        if "is_admin" not in columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL "
+                "DEFAULT 0 CHECK(is_admin IN (0, 1))"
+            )
+
+        connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS users_single_admin "
+            "ON users(is_admin) WHERE is_admin = 1"
+        )
+
         # Existing pending uploads receive one inactivity window.
         connection.execute(
             """
@@ -158,6 +203,9 @@ def initialize_database() -> None:
 
 def database_ready() -> bool:
     with connect() as connection:
+        connection.execute(
+            "SELECT is_admin FROM users LIMIT 1"
+        ).fetchall()
         connection.execute(
             "SELECT id FROM transfers LIMIT 1"
         ).fetchall()

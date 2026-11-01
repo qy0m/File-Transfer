@@ -1,6 +1,6 @@
 <?php
 
-$title = 'Settings - File Transfer';
+$title = 'Settings - Filevoya';
 
 header('Cache-Control: no-store');
 
@@ -8,11 +8,17 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="reading-column auth-column">
+<header class="page-intro">
+<span class="icon-badge tone-violet"><?php filevoya_icon('sliders'); ?></span>
     <p class="text-uppercase text-secondary small fw-semibold">
         Your account
     </p>
 
     <h1 class="fw-bold mb-4">Settings</h1>
+    <p class="text-secondary mb-0">
+        Your account details and password, in one place.
+    </p>
+    </header>
 
     <section class="card mb-4">
         <div class="card-body">

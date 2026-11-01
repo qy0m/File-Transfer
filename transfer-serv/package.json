@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "tsc -p frontend/tsconfig.json && tsc -p gateway/tsconfig.json && node scripts/clone-bootstrap.mjs",
-    "check": "tsc -p frontend/tsconfig.json --noEmit && tsc -p gateway/tsconfig.json --noEmit",
+    "build": "tsc -p frontend/tsconfig.json && tsc -p frontend/worker/tsconfig.json && tsc -p gateway/tsconfig.json && node scripts/clone-bootstrap.mjs",
+    "check": "tsc -p frontend/tsconfig.json --noEmit && tsc -p frontend/worker/tsconfig.json --noEmit && tsc -p gateway/tsconfig.json --noEmit",
     "dev:web": "node scripts/dev-web.mjs"
   },
   "dependencies": {

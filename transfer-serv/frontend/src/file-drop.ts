@@ -4,7 +4,9 @@ export type DroppedFile = {
 };
 
 export async function collectDroppedFiles(
-  transfer: DataTransfer
+  transfer: DataTransfer,
+  maxBytes = 5_000_000_000,
+  maxFiles = 25
 ): Promise<DroppedFile[]> {
   // Capture entries while the drop event can still access them.
   const items = Array.from(transfer.items).filter(
@@ -35,12 +37,20 @@ export async function collectDroppedFiles(
   let visited = 0;
 
   function add(file: File, path: string): void {
-    if (files.length >= 25) {
-      throw new Error("Choose no more than 25 files.");
+    if (files.length >= maxFiles) {
+      throw new Error(
+        `Choose no more than ${maxFiles} files.`
+      );
     }
 
-    if (total + file.size > 5_000_000_000) {
-      throw new Error("The combined size must be 5 GB or less.");
+    if (
+      !Number.isSafeInteger(file.size) ||
+      !Number.isSafeInteger(total + file.size) ||
+      total + file.size > maxBytes
+    ) {
+      throw new Error(
+        "The selected files exceed your upload size limit."
+      );
     }
 
     if (seen.has(path)) {

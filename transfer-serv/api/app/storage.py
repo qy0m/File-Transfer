@@ -68,6 +68,12 @@ def reserve_pending_capacity(
         FROM transfers AS t
         JOIN transfer_activity AS a ON a.transfer_id = t.id
         WHERE a.client_hash = ? AND t.state = 'pending'
+            AND NOT EXISTS (
+                SELECT 1
+                FROM transfer_owners AS o
+                JOIN users AS u ON u.id = o.user_id
+                WHERE o.transfer_id = t.id AND u.is_admin = 1
+            )
         """,
         (identity,),
     ).fetchone()
@@ -107,12 +113,19 @@ def ensure_free_space(additional_bytes: int) -> None:
 def reserve_capacity(
     connection: sqlite3.Connection,
     total_bytes: int,
+    *,
+    is_admin: bool = False,
 ) -> None:
-    # Caller must hold BEGIN IMMEDIATE through transfer insertion.
+    # Caller holds BEGIN IMMEDIATE until transfer insertion.
     reserved, count = connection.execute(
         """
-        SELECT COALESCE(SUM(total_bytes), 0), COUNT(*)
-        FROM transfers
+        SELECT COALESCE(SUM(
+            CASE WHEN COALESCE(u.is_admin, 0) = 0
+                THEN t.total_bytes ELSE 0 END
+        ), 0), COUNT(*)
+        FROM transfers AS t
+        LEFT JOIN transfer_owners AS o ON o.transfer_id = t.id
+        LEFT JOIN users AS u ON u.id = o.user_id
         """
     ).fetchone()
 
@@ -122,21 +135,26 @@ def reserve_capacity(
             "Transfer capacity reached. "
             "Try again after transfers are removed.",
         )
-    
-    if total_bytes > MAX_STORAGE_BYTES - reserved:
+
+    if not is_admin and total_bytes > MAX_STORAGE_BYTES - reserved:
         raise HTTPException(
             507,
             "Storage capacity reached. "
             "Try again after transfers are removed.",
         )
 
-    outstanding = connection.execute(
+    ensure_free_space(pending_bytes(connection) + total_bytes)
+
+def pending_bytes(connection: sqlite3.Connection) -> int:
+    return connection.execute(
         """
         SELECT COALESCE(
-            SUM(MAX(
-                f.size_bytes - COALESCE(p.received_bytes, 0),
-                0
-            )),
+            SUM(
+                MAX(
+                    f.size_bytes - COALESCE(p.received_bytes, 0),
+                    0
+                )
+            ),
             0
         )
         FROM files AS f
@@ -145,10 +163,7 @@ def reserve_capacity(
         """
     ).fetchone()[0]
 
-    ensure_free_space(outstanding + total_bytes)
-
 ACCOUNT_STORAGE_BYTES = 5_000_000_000
-
 
 def account_reserved_bytes(
     connection: sqlite3.Connection,
@@ -189,7 +204,38 @@ def storage_summary(
 ) -> dict:
     used = account_reserved_bytes(connection, user_id)
 
+    is_admin = bool(
+        connection.execute(
+            "SELECT is_admin FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()[0]
+    )
+
+    if is_admin:
+        try:
+            free = shutil.disk_usage(UPLOAD_PATH).free
+        except OSError as error:
+            raise HTTPException(
+                507,
+                "Upload storage is unavailable.",
+            ) from error
+
+        available = max(
+            0,
+            free - MIN_FREE_DISK_BYTES - pending_bytes(connection),
+        )
+
+        return {
+            "quota_exempt": True,
+            "budget_bytes": None,
+            "reserved_bytes": used,
+            "available_bytes": available,
+            "account_reserved_bytes": used,
+            "reason": "disk_space" if available == 0 else None,
+        }
+
     return {
+        "quota_exempt": False,
         "budget_bytes": ACCOUNT_STORAGE_BYTES,
         "reserved_bytes": used,
         "available_bytes": max(0, ACCOUNT_STORAGE_BYTES - used),
@@ -274,3 +320,74 @@ def guest_storage_summary(
         "available_bytes": max(0, GUEST_STORAGE_BYTES - used),
         "reason": "budget" if used >= GUEST_STORAGE_BYTES else None,
     }
+
+# Limits shared across guest sessions and regular accounts on one public IP.
+MAX_ACTIVE_BYTES_PER_CLIENT = read_limit(
+    "MAX_ACTIVE_BYTES_PER_CLIENT", 10_000_000_000, 1
+)
+MAX_DAILY_BYTES_PER_CLIENT = read_limit(
+    "MAX_DAILY_BYTES_PER_CLIENT", 20_000_000_000, 1
+)
+MAX_DAILY_TRANSFERS_PER_CLIENT = read_limit(
+    "MAX_DAILY_TRANSFERS_PER_CLIENT", 100, 1
+)
+
+
+def reserve_client_capacity(connection, identity, total_bytes, now):
+    # Caller holds BEGIN IMMEDIATE through transfer creation.
+    used = connection.execute(
+        """
+        SELECT COALESCE(SUM(t.total_bytes), 0)
+        FROM transfers AS t
+        JOIN transfer_activity AS a ON a.transfer_id = t.id
+        WHERE a.client_hash = ? AND NOT EXISTS (
+            SELECT 1 FROM transfer_owners AS o
+            JOIN users AS u ON u.id = o.user_id
+            WHERE o.transfer_id = t.id AND u.is_admin = 1
+        )
+        """,
+        (identity,),
+    ).fetchone()[0]
+
+    if total_bytes > max(0, MAX_ACTIVE_BYTES_PER_CLIENT - used):
+        raise HTTPException(
+            429,
+            "This connection has reached its shared upload storage allowance. "
+            "Remove existing uploads or wait for them to expire.",
+            headers={"Retry-After": "60"},
+        )
+
+    row = connection.execute(
+        "SELECT reserved_bytes, transfers_created, resets_at "
+        "FROM client_upload_budgets WHERE client_hash = ?",
+        (identity,),
+    ).fetchone()
+
+    charged, count, resets = (
+        row if row and row[2] > now else (0, 0, now + 86400)
+    )
+
+    if (
+        total_bytes > max(0, MAX_DAILY_BYTES_PER_CLIENT - charged)
+        or count >= MAX_DAILY_TRANSFERS_PER_CLIENT
+    ):
+        raise HTTPException(
+            429,
+            "This connection has reached its daily upload allowance. "
+            "Try again later.",
+            headers={"Retry-After": str(max(1, resets - now))},
+        )
+
+    connection.execute(
+        """
+        INSERT INTO client_upload_budgets
+            (client_hash, reserved_bytes, transfers_created, resets_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(client_hash) DO UPDATE SET
+            reserved_bytes = excluded.reserved_bytes,
+            transfers_created = excluded.transfers_created,
+            resets_at = excluded.resets_at
+        """,
+        (identity, charged + total_bytes, count + 1, resets),
+    )
+

@@ -1,3 +1,4 @@
+import secrets
 import http.cookiejar
 import json
 
@@ -88,7 +89,7 @@ call(
     "/auth/register",
     {
         "username": "quota-test",
-        "password": "Local-quota-test-password!",
+        "password": secrets.token_urlsafe(32),
     },
     201,
 )

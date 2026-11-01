@@ -18,6 +18,16 @@ def cleanup_once(*, dry_run: bool = False) -> dict:
     now = int(time.time())
 
     with connect() as connection:
+        if not dry_run:
+            connection.execute(
+                "DELETE FROM abuse_reports WHERE created_at < ?",
+                (now - 30 * 24 * 60 * 60,),
+            )
+        if not dry_run:
+            connection.execute(
+                "DELETE FROM client_upload_budgets WHERE resets_at <= ?",
+                (now,),
+            )
         candidates = connection.execute(
             """
             SELECT t.id
