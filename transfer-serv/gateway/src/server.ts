@@ -13,6 +13,8 @@ const host = process.env.HOST ?? "0.0.0.0";
 
 const MAX_METADATA_BYTES = 1024 * 1024;
 const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
+const MAX_ACTIVE_UPLOADS = 4;
+let activeUploads = 0;
 const ID = "[A-Za-z0-9_-]{32}";
 
 const transferRoute = new RegExp(
@@ -116,6 +118,58 @@ function requireContentType(
     throw new GatewayError(
       415, "Compressed bodies are unsupported."
     );
+  }
+}
+
+async function authorizeUpload(
+  request: IncomingMessage,
+  transfer: string
+): Promise<void> {
+  const token = request.headers["x-upload-token"];
+
+  if (typeof token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
+    throw new GatewayError(401, "Invalid upload token.");
+  }
+
+  try {
+    const upstream = await fetch(
+      `${apiUrl}/transfers/${transfer}/upload-status`,
+      {
+        headers: { "X-Upload-Token": token, Accept: "application/json" },
+        signal: AbortSignal.timeout(5000),
+        redirect: "error"
+      }
+    );
+
+    const result: unknown = await upstream.json();
+
+    if (!upstream.ok) {
+      throw new GatewayError(
+        upstream.status,
+        upstream.status === 401 ? "Invalid upload token." :
+          upstream.status === 410 ? "Transfer expired." :
+            "Upload authorization unavailable."
+      );
+    }
+
+    if (
+      typeof result !== "object" || result === null ||
+      !("id" in result) || result.id !== transfer ||
+      !("state" in result)
+    ) {
+      throw new GatewayError(502, "Invalid upload authorization response.");
+    }
+
+    if (result.state === "ready") {
+      throw new GatewayError(409, "Uploads already complete.");
+    }
+
+    if (result.state !== "pending") {
+      throw new GatewayError(502, "Invalid upload authorization response.");
+    }
+  } catch (error) {
+    if (error instanceof GatewayError) throw error;
+    throw new GatewayError(503, "Upload authorization unavailable.");
   }
 }
 
@@ -244,6 +298,7 @@ async function handle(
   request: IncomingMessage,
   response: ServerResponse
 ): Promise<void> {
+  let uploadSlot = false;
   try {
     const url = new URL(
       request.url ?? "/",
@@ -382,6 +437,18 @@ async function handle(
         );
       }
 
+      if (activeUploads >= MAX_ACTIVE_UPLOADS) {
+        response.setHeader("Retry-After", "1");
+        throw new GatewayError(503, "Uploads are busy. Retry shortly.");
+      }
+
+      activeUploads++;
+      uploadSlot = true;
+
+      // Reject invalid tokens before buffering any chunk data.
+      // The API also rechecks authorization when it saves the chunk.
+      await authorizeUpload(request, chunkRoute.exec(path)![1]);
+
       const receiveStarted = performance.now();
 
       const body = await readBody(
@@ -420,6 +487,9 @@ async function handle(
 
     throw new GatewayError(404, "Not found.");
   } catch (error) {
+    if (!request.readableEnded) {
+      response.setHeader("Connection", "close");
+    }
     if (error instanceof GatewayError) {
       sendJson(response, error.status, {
         detail: error.message
@@ -430,8 +500,15 @@ async function handle(
       });
     }
   } finally {
+    if (uploadSlot) activeUploads--;
     if (!request.destroyed && !request.readableEnded) {
-      request.resume();
+      if (response.getHeader("Connection") === "close") {
+        // Flush the error response, then stop receiving the rejected body.
+        if (response.writableFinished) request.destroy();
+        else response.once("finish", () => request.destroy());
+      } else {
+        request.resume();
+      }
     }
   }
 }
