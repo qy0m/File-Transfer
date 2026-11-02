@@ -21,6 +21,21 @@ Regular accounts and guest browsers have a 5 GB storage allowance, with up to
 24 hours; incomplete uploads expire after 15 minutes without a successful chunk.
 Accounts support transfer management and password changes; passwords use Argon2.
 
+## Required filenames before setup
+
+This upload includes three filenames with a leading `!` as a workaround for uploading hidden files.
+Before installing, building, or running the project, restore their standard names inside `transfer-serv/`:
+
+| Uploaded file | Required action |
+| --- | --- |
+| `!.env.example` | Rename to `.env.example`. |
+| `!.gitignore` | Replace the older `.gitignore` with this file's contents, then remove `!.gitignore`. |
+| `!.dockerignore` | Replace the older `.dockerignore` with this file's contents, then remove `!.dockerignore`. |
+
+Keep the `!.env.example` line **inside** `.gitignore`: it is a Git
+exception rule allowing the safe example file to be tracked.
+Never publish your real `.env` or private keys.
+
 ## Local Docker setup on Linux
 
 Install Docker Engine and the Compose plugin. In the project directory:
@@ -65,9 +80,10 @@ Run npm run check, npm run build, Python syntax checks, and PHP linting.
 Then test an encrypted browser upload, a full share link in a second browser,
 individual and folder downloads, and account-owned deletion.
 
-The API requires encryption metadata for new transfers. Plain filename/size
-requests return HTTP 422. The legacy scripts/test-storage-limits.py uses that
-older format and needs updating before it can test the current API.
+The storage regression script is being updated for the encrypted API.
+Until that update is committed, do not use the legacy script to verify
+the current version. Test encrypted uploads, individual downloads,
+ZIP downloads, and account-owned deletion through the browser.
 
 ## Publishing and deployment
 
@@ -77,5 +93,5 @@ Private deployment overrides belong in ignored compose.override.yaml files.
 This public Compose template changes host bindings, storage paths, and networks;
 migrate an existing live deployment deliberately. Review about.php so its
 deployment descriptions match your own infrastructure.
-Retain the bundled third-party icon license notices. A project-wide license
-has not been selected in this package.
+Retain the bundled third-party icon license notices.
+The project is licensed under the [Apache License 2.0](../LICENSE).
