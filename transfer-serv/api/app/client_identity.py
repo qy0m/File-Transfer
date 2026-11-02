@@ -33,6 +33,18 @@ def client_key(request: Request) -> str:
                     "Invalid client address.",
                 ) from error
 
-    identity = str(address) if address is not None else peer
+    # IPv4-mapped IPv6 must use the same bucket as the IPv4 address.
+    if isinstance(address, ipaddress.IPv6Address):
+        mapped = address.ipv4_mapped
+        if mapped is not None:
+            address = mapped
+
+    # Privacy addresses within one IPv6 /64 share abuse and upload limits.
+    # Keep existing IPv4 identities unchanged.
+    identity = (
+        str(ipaddress.IPv6Network((address, 64), strict=False))
+        if isinstance(address, ipaddress.IPv6Address)
+        else str(address) if address is not None else peer
+    )
 
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
