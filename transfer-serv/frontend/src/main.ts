@@ -1,8 +1,10 @@
+import { prepareEncryptedDownloads } from "./encrypted-download.js";
+import { createEncryptionPlan, encryptedChunk, wireSize, WIRE_CHUNK, PLAIN_CHUNK, type EncryptionPlan } from "./encryption.js";
 import { collectDroppedFiles } from "./file-drop.js";
 
 const MAX_FILES = 25;
+const ADMIN_MAX_FILES = 200;
 const MAX_BYTES = 5_000_000_000;
-const CHUNK_BYTES = 8 * 1024 * 1024;
 const ID_PATTERN = /^[A-Za-z0-9_-]{32}$/;
 
 type UploadFile = {
@@ -17,6 +19,7 @@ type UploadSession = {
   id: string;
   token: string;
   files: UploadFile[];
+  encryption: EncryptionPlan;
 };
 
 class ApiError extends Error {
@@ -109,17 +112,19 @@ function uploadPath(file: File): string {
 async function createSession(
   files: File[]
 ): Promise<UploadSession> {
+  await prepareEncryptedDownloads();
+  const encryption = await createEncryptionPlan(files, files.map(uploadPath));
+  const wireFiles = encryption.files.map(file => ({
+    name: file.opaque, relative_path: file.opaque, size_bytes: wireSize(file.size)
+  }));
   const body = await api("/transfers", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      files: files.map(file => ({
-        name: file.name,
-        relative_path: uploadPath(file),
-        size_bytes: file.size
-      }))
+      encryption: encryption.encryption,
+      files: wireFiles
     })
   });
 
@@ -143,17 +148,17 @@ async function createSession(
         !isObject(value) ||
         typeof value.id !== "string" ||
         !ID_PATTERN.test(value.id) ||
-        value.name !== files[index].name ||
-        value.relative_path !== uploadPath(files[index]) ||
-        value.size_bytes !== files[index].size
+        value.name !== wireFiles[index].name ||
+        value.relative_path !== wireFiles[index].relative_path ||
+        value.size_bytes !== wireFiles[index].size_bytes
       ) {
         throw new Error("Invalid file response.");
       }
 
       return {
         id: value.id,
-        name: files[index].name,
-        size_bytes: files[index].size,
+        name: wireFiles[index].name,
+        size_bytes: wireFiles[index].size_bytes,
         received_bytes: 0,
         state: "pending"
       };
@@ -169,6 +174,7 @@ async function createSession(
   return {
     id: body.id,
     token: body.upload_token,
+    encryption,
     files: records
   };
 }
@@ -300,19 +306,75 @@ function initializeUploader(): void {
   let busy = false;
   let readingDrop = false;
   let done = false;
+  let maxBytes = MAX_BYTES;
+  let maxFiles = MAX_FILES;
+  let checkingPolicy = true;
+
+  async function loadUploadPolicy(): Promise<void> {
+    try {
+      const result = await api("/auth/me");
+
+      if (
+        !isObject(result) ||
+        !isObject(result.user) ||
+        typeof result.user.is_admin !== "boolean"
+      ) {
+        throw new Error("Invalid upload permissions.");
+      }
+
+      const isAdmin = result.user.is_admin;
+
+      maxBytes = isAdmin
+        ? Number.MAX_SAFE_INTEGER
+        : MAX_BYTES;
+
+      maxFiles = isAdmin
+        ? ADMIN_MAX_FILES
+        : MAX_FILES;
+    } catch (error) {
+      if (
+        !(error instanceof ApiError && error.status === 401)
+      ) {
+        throw error;
+      }
+
+      maxBytes = MAX_BYTES;
+      maxFiles = MAX_FILES;
+    }
+
+    element("upload-file-limit").textContent =
+      `Choose files or a folder, with up to ${maxFiles} files per transfer.`;
+
+    element("upload-allowance").textContent =
+      maxBytes === MAX_BYTES
+        ? "Your total upload allowance is 5 GB."
+        : "Administrator uploads: no account quota or 5 GB transfer cap. " +
+          "Available disk capacity still applies.";
+
+    checkingPolicy = false;
+    setSelection(selected);
+  }
 
   function validSelection(): boolean {
+    const total = selected.reduce(
+      (sum, file) => sum + file.size,
+      0
+    );
+
     return selected.length > 0 &&
-      selected.length <= MAX_FILES &&
-      selected.reduce(
-        (total, file) => total + file.size, 0
-      ) <= MAX_BYTES;
+      selected.length <= maxFiles &&
+      selected.every(
+        file => Number.isSafeInteger(file.size) && file.size >= 0
+      ) &&
+      Number.isSafeInteger(total) &&
+      selected.reduce((sum, file) => sum + wireSize(file.size), 0) <= maxBytes;
   }
 
   function updateButton(): void {
     const locked = busy || readingDrop;
 
-    button.disabled = locked || done || !validSelection();
+    button.disabled =
+      locked || checkingPolicy || done || !validSelection();
     pickerButton.disabled = locked;
     filesButton.disabled = locked;
     input.disabled = locked;
@@ -330,7 +392,7 @@ function initializeUploader(): void {
       : done
         ? "Upload complete"
         : session
-          ? "Resume upload"
+          ? "Resume encrypted upload"
           : "Upload files";
   }
 
@@ -349,7 +411,10 @@ function initializeUploader(): void {
     );
 
     const confirmed = session?.files.reduce(
-      (bytes, file) => bytes + file.received_bytes, 0
+      (bytes, file, index) => bytes + (file.state === "ready"
+        ? selected[index].size
+        : Math.min(selected[index].size, Math.floor(file.received_bytes / WIRE_CHUNK) * PLAIN_CHUNK)
+      ), 0
     ) ?? 0;
 
     const sent = Math.min(total, confirmed);
@@ -367,7 +432,7 @@ function initializeUploader(): void {
 
     list.replaceChildren();
 
-    selected.slice(0, MAX_FILES).forEach((file, index) => {
+    selected.slice(0, maxFiles).forEach((file, index) => {
       const item = document.createElement("li");
       const record = session?.files[index];
 
@@ -406,10 +471,10 @@ function initializeUploader(): void {
       ? `${selected.length} file(s) selected · ${formatBytes(total)}`
       : "No files selected.";
 
-    if (selected.length > MAX_FILES) {
-      text = "Choose no more than 25 files.";
-    } else if (total > MAX_BYTES) {
-      text = "The combined size must be 5 GB or less.";
+    if (selected.length > maxFiles) {
+      text = `Choose no more than ${maxFiles} files.`;
+    } else if (!Number.isSafeInteger(total) || selected.reduce((sum, file) => sum + wireSize(file.size), 0) > maxBytes) {
+      text = "The selected files exceed your upload size limit (including encryption overhead).";
     }
 
     selection.textContent = text;
@@ -422,6 +487,7 @@ function initializeUploader(): void {
     message("");
     render();
     updateButton();
+
   }
 
   function chooseFiles(source: HTMLInputElement): void {
@@ -554,6 +620,7 @@ function initializeUploader(): void {
     if (
       busy ||
       readingDrop ||
+      checkingPolicy ||
       !event.dataTransfer ||
       !(event.target instanceof Node) ||
       !dropZone.contains(event.target)
@@ -569,7 +636,9 @@ function initializeUploader(): void {
 
     try {
       const dropped = await collectDroppedFiles(
-        event.dataTransfer
+        event.dataTransfer,
+        maxBytes,
+        maxFiles
       );
 
       for (const item of dropped) {
@@ -578,8 +647,10 @@ function initializeUploader(): void {
 
       const files = dropped.map(item => item.file);
 
-      if (!files.length || files.length > MAX_FILES) {
-        throw new Error("Choose between 1 and 25 files.");
+      if (!files.length || files.length > maxFiles) {
+        throw new Error(
+          `Choose between 1 and ${maxFiles} files.`
+        );
       }
 
       const total = files.reduce(
@@ -587,9 +658,9 @@ function initializeUploader(): void {
         0
       );
 
-      if (total > MAX_BYTES) {
+      if (!Number.isSafeInteger(total) || total > maxBytes) {
         throw new Error(
-          "The combined size must be 5 GB or less."
+          "The selected files exceed your upload size limit."
         );
       }
 
@@ -633,7 +704,13 @@ function initializeUploader(): void {
   });
 
   async function upload(): Promise<void> {
-    if (busy || readingDrop || done || !validSelection()) {
+    if (
+      busy ||
+      readingDrop ||
+      checkingPolicy ||
+      done ||
+      !validSelection()
+    ) {
       return;
     }
 
@@ -648,6 +725,13 @@ function initializeUploader(): void {
       }
 
       const active = session;
+      const recoveryUrl = new URL("/transfer.php", location.origin);
+      recoveryUrl.searchParams.set("id", active.id);
+      recoveryUrl.hash = "key=" + active.encryption.key;
+      shareLink.value = recoveryUrl.href;
+      openLink.href = recoveryUrl.href;
+      shareResult.hidden = false;
+      element("share-heading").textContent = "Save this full link while your encrypted upload finishes";
 
       await synchronize(active);
       render();
@@ -659,10 +743,7 @@ function initializeUploader(): void {
         while (!isComplete(record)) {
           const offset = record.received_bytes;
 
-          const data = local.slice(
-            offset,
-            Math.min(offset + CHUNK_BYTES, local.size)
-          );
+          const data = await encryptedChunk(active.encryption, index, local, offset);
 
           message(
             `Uploading ${index + 1} of ${selected.length}: ${uploadPath(local)}`
@@ -684,9 +765,9 @@ function initializeUploader(): void {
           if (
             !isObject(reply) ||
             reply.file_id !== record.id ||
-            reply.received_bytes !== offset + data.size ||
+            reply.received_bytes !== offset + data.byteLength ||
             reply.file_state !== (
-              offset + data.size === local.size
+              offset + data.byteLength === record.size_bytes
                 ? "ready"
                 : "pending"
             )
@@ -694,7 +775,7 @@ function initializeUploader(): void {
             throw new Error("Invalid chunk confirmation.");
           }
 
-          record.received_bytes = offset + data.size;
+          record.received_bytes = offset + data.byteLength;
           record.state = reply.file_state as "pending" | "ready";
 
           render();
@@ -716,15 +797,17 @@ function initializeUploader(): void {
       );
 
       url.searchParams.set("id", active.id);
+      url.hash = "key=" + active.encryption.key;
 
       shareLink.value = url.href;
       openLink.href = url.href;
       shareResult.hidden = false;
 
       done = true;
+      element("share-heading").textContent = "Your encrypted files are ready to share";
       render();
 
-      message("Upload complete. Share the link below.")
+      message("Encrypted upload complete. Save the full link including its key; Filevoya cannot recover a lost key.")
 
     } catch (error) {
       if (
@@ -771,6 +854,13 @@ function initializeUploader(): void {
 
   render();
   updateButton();
+
+  void loadUploadPolicy().catch(() => {
+    message(
+      "Could not check upload permissions. Refresh the page to retry.",
+      true
+    );
+  });
 }
 
 async function checkHealth(): Promise<void> {

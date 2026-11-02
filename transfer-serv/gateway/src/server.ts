@@ -11,7 +11,7 @@ const apiUrl = (
 const port = Number(process.env.PORT ?? "3000");
 const host = process.env.HOST ?? "0.0.0.0";
 
-const MAX_METADATA_BYTES = 64 * 1024;
+const MAX_METADATA_BYTES = 1024 * 1024;
 const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
 const ID = "[A-Za-z0-9_-]{32}";
 
@@ -261,6 +261,7 @@ async function handle(
     }
 
     const accountMethods: Record<string, string> = {
+      "/abuse/reports": "POST",
       "/auth/register": "POST",
       "/auth/login": "POST",
       "/auth/logout": "POST",

@@ -1,0 +1,421 @@
+/* Filevoya: solid charcoal surfaces and the existing dark accent palette. */
+:root,
+[data-bs-theme="dark"] {
+    --bs-body-bg: #101113;
+    --bs-body-color: #eceef2;
+    --bs-secondary-color: #a8adb7;
+    --bs-secondary-rgb: 168, 173, 183;
+    --bs-border-color: #30343b;
+    --surface: #191b1f;
+    --surface-raised: #22252b;
+    --accent: #780606;
+    --accent-hover: #780606;
+    --accent-soft: #780606;
+    --accent-teal: #067860;
+    --accent-violet: #456a8a;
+    --accent-amber: #785606;
+}
+
+body {
+    background: var(--bs-body-bg);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.site-nav {
+    min-height: 82px;
+    padding-block: 1rem;
+    background: #151619;
+    border-bottom: 1px solid #282b31;
+}
+
+.site-nav .container,
+main.container {
+    max-width: 1160px;
+}
+
+.site-nav .container {
+    gap: 1rem;
+}
+
+.navbar-brand {
+    gap: 0.75rem;
+    font-size: 1.3rem;
+    letter-spacing: -0.045em;
+}
+
+.site-nav-links {
+    gap: 0.65rem;
+}
+
+.site-nav .nav-link {
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.65rem;
+    font-weight: 500;
+}
+
+main.container.py-5 {
+    padding-block: clamp(2rem, 5vw, 4rem) !important;
+}
+
+.reading-column,
+.dashboard-column,
+.site-column {
+    max-width: 60rem;
+}
+
+.auth-column {
+    max-width: 35rem;
+}
+
+.page-intro,
+.about-page .about-hero {
+    padding: clamp(1.5rem, 5vw, 3.25rem);
+    margin-bottom: 1.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1.5rem;
+    background: var(--surface);
+    box-shadow: 0 12px 36px rgb(0 0 0 / 10%);
+}
+
+.page-intro h1,
+.about-page h1 {
+    max-width: 18ch;
+    margin-block: 0.8rem 1.1rem;
+    font-size: clamp(2.25rem, 5.5vw, 4rem);
+    font-weight: 750;
+    line-height: 1.08;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+}
+
+.auth-column .page-intro h1 {
+    font-size: clamp(2rem, 5vw, 3.1rem);
+}
+
+.page-intro .lead,
+.about-page .about-intro {
+    max-width: 62ch;
+    color: #bdc2cc !important;
+    font-size: 1.025rem;
+    line-height: 1.8;
+}
+
+.page-intro .text-uppercase,
+.about-page .about-kicker,
+.about-page .about-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.card,
+.about-page .about-panel {
+    border-color: var(--bs-border-color);
+    border-radius: 1.25rem;
+    background: var(--surface);
+}
+
+.card-body,
+.about-page .about-panel {
+    padding: clamp(1.25rem, 3vw, 2rem) !important;
+}
+
+.icon-badge,
+.about-page .about-icon-box {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 0.95rem;
+    background: var(--surface);
+}
+
+.tone-red,
+.about-page .about-tone-red {
+    color: #780606;
+    border-color: #780606;
+}
+
+.tone-teal,
+.about-page .about-tone-teal {
+    color: var(--accent-teal);
+    border-color: var(--accent-teal);
+}
+
+.tone-violet,
+.about-page .about-tone-violet {
+    color: var(--accent-violet);
+    border-color: var(--accent-violet);
+}
+
+.tone-amber,
+.about-page .about-tone-amber {
+    color: var(--accent-amber);
+    border-color: var(--accent-amber);
+}
+
+.btn {
+    min-height: 44px;
+    padding: 0.7rem 1.1rem;
+    border-radius: 0.8rem;
+    font-size: 0.9rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.btn-sm {
+    min-height: 38px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+}
+
+.btn-primary {
+    --bs-btn-bg: #780606;
+    --bs-btn-border-color: #780606;
+    --bs-btn-hover-bg: #780606;
+    --bs-btn-hover-border-color: #780606;
+    --bs-btn-active-bg: #780606;
+    --bs-btn-active-border-color: #780606;
+}
+
+.btn-primary:hover:not(:disabled) {
+    box-shadow: 0 0 0 3px rgb(120 6 6 / 20%);
+}
+
+.form-label {
+    margin-bottom: 0.6rem;
+    color: #c5cad3;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.form-control {
+    min-height: 48px;
+    padding: 0.8rem 1rem;
+    border: 1px solid #3b4049;
+    border-radius: 0.8rem;
+    background: #121417;
+}
+
+.form-control:focus {
+    border-color: #8a929f;
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 7%);
+}
+
+.form-control[readonly] {
+    background: #141619;
+}
+
+a:focus-visible,
+button:focus-visible,
+details.card > summary:focus-visible {
+    outline: 2px solid #c5cad3;
+    outline-offset: 4px;
+}
+
+#drop-zone:focus-within {
+    border-color: #626a77;
+}
+
+#upload-button {
+    min-height: 52px;
+}
+
+.upload-progress {
+    height: 0.45rem;
+    border-radius: 999px;
+}
+
+#share-result {
+    padding: 1.4rem !important;
+    border-radius: 1rem !important;
+    background: #171d1c;
+}
+
+.dropdown-menu,
+.account-dropdown .dropdown-menu {
+    padding: 0.45rem;
+    border-color: #3b4049;
+    border-radius: 0.9rem;
+    background: #22252b;
+    box-shadow: 0 16px 40px rgb(0 0 0 / 25%);
+}
+
+.dropdown-item {
+    border-radius: 0.55rem;
+}
+
+#encrypted-files .list-group-item,
+#dashboard-list .list-group-item {
+    gap: 1rem;
+    padding-block: 1rem;
+    background: transparent;
+}
+
+.shared-file-name,
+#share-link,
+#account-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.about-page .about-stats {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top-color: var(--bs-border-color);
+}
+
+.about-page .about-stats dt {
+    font-size: 1.65rem;
+    letter-spacing: -0.04em;
+}
+
+.about-page .about-disclosure {
+    border-color: var(--accent-amber);
+    border-radius: 1.25rem;
+    background: var(--surface);
+}
+
+.site-footer {
+    max-width: 1136px;
+    padding-block: 2rem;
+    border-color: #282b31;
+    font-size: 0.8rem;
+}
+
+.site-footer a:not(.footer-brand) {
+    color: #bec4ce;
+}
+
+.site-footer a:hover {
+    color: #fff;
+}
+
+@media (max-width: 575.98px) {
+    .site-nav {
+        min-height: 0;
+        padding-block: 1rem;
+    }
+
+    .site-nav .container {
+        gap: 0.8rem;
+    }
+
+    .site-nav-links {
+        gap: 0.4rem;
+    }
+
+    .site-nav .nav-link {
+        padding-inline: 0.5rem;
+    }
+
+    .page-intro,
+    .about-page .about-hero {
+        border-radius: 1.15rem;
+    }
+
+    .about-page .about-stats dt {
+        font-size: 1.25rem;
+    }
+
+    #encrypted-files .list-group-item > .shared-file-name {
+        flex-basis: 100%;
+    }
+
+    .site-footer {
+        gap: 1rem;
+    }
+}
+
+:root,
+[data-bs-theme="dark"] {
+    --accent-violet: #456a8a;
+    --accent-teal: #246b4a;
+}
+
+#storage-page #storage-account {
+    color: #780606;
+}
+
+/* Filevoya readable accents: foregrounds on charcoal surfaces. */
+:root,
+[data-bs-theme="dark"] {
+    --accent-readable-red: #d98383;
+    --accent-soft: var(--accent-readable-red);
+    --accent-teal: #79b79a;
+    --accent-violet: #89acc7;
+    --accent-amber: #d0b16d;
+
+    --bs-primary-text-emphasis: var(--accent-readable-red);
+    --bs-danger-text-emphasis: var(--accent-readable-red);
+
+    --bs-link-color: #d98383;
+    --bs-link-color-rgb: 217, 131, 131;
+    --bs-link-hover-color: #ebb0b0;
+    --bs-link-hover-color-rgb: 235, 176, 176;
+}
+
+.about-page {
+    --about-red: var(--accent-readable-red);
+}
+
+.tone-red,
+.about-page .about-tone-red {
+    color: var(--accent-readable-red);
+    border-color: var(--accent-readable-red);
+}
+
+#storage-page #storage-account,
+.text-primary,
+.text-danger {
+    color: var(--accent-readable-red) !important;
+}
+
+.text-success {
+    color: var(--accent-teal) !important;
+}
+
+.text-info {
+    color: var(--accent-violet) !important;
+}
+
+.text-warning {
+    color: var(--accent-amber) !important;
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--accent-readable-red);
+    --bs-btn-border-color: var(--accent-readable-red);
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-active-color: #ffffff;
+}
+
+.form-control,
+.form-select,
+#files {
+    border-color: #7d8796;
+}
+
+.form-control:focus,
+.form-select:focus,
+#files:focus {
+    border-color: #b5c2d3;
+    box-shadow: 0 0 0 3px rgb(181 194 211 / 18%);
+}
+
+.btn-outline-primary,
+.btn-outline-secondary {
+    --bs-btn-border-color: #7d8796;
+}
+
+.btn:focus-visible,
+a:focus-visible,
+button:focus-visible,
+details.card > summary:focus-visible {
+    outline: 2px solid #c5cad3;
+    outline-offset: 4px;
+}
+
+details.card > summary:focus-visible {
+    outline-offset: -4px;
+}

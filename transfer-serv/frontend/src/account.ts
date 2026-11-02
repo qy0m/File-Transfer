@@ -15,6 +15,7 @@ type SharedFile = {
 
 type Transfer = {
   id: string;
+  encrypted: boolean;
   expires_at: number;
   state: "pending" | "ready";
   files: SharedFile[];
@@ -123,6 +124,7 @@ function validDashboard(value: unknown): value is Dashboard {
       object(transfer) &&
       typeof transfer.id === "string" &&
       ID.test(transfer.id) &&
+      typeof transfer.encrypted === "boolean" &&
       typeof transfer.expires_at === "number" &&
       Number.isSafeInteger(transfer.expires_at) &&
       (
@@ -181,7 +183,7 @@ function renderDashboard(data: Dashboard): void {
 
     const heading = document.createElement("h2");
     heading.className = "h5";
-    heading.textContent = `${transfer.files.length} file(s)`;
+    heading.textContent = `${transfer.files.length} file(s)${transfer.encrypted ? " · End-to-end encrypted" : ""}`;
 
     const information = document.createElement("p");
     information.className = "small text-secondary";
@@ -202,7 +204,7 @@ function renderDashboard(data: Dashboard): void {
       description.className = "flex-grow-1 shared-file-name";
 
       const name = document.createElement("strong");
-      name.textContent = file.name;
+      name.textContent = transfer.encrypted ? "Encrypted file" : file.name;
 
       const size = document.createElement("div");
       size.className = "small text-secondary";
@@ -215,7 +217,7 @@ function renderDashboard(data: Dashboard): void {
       row.append(description);
 
       if (
-        transfer.state === "ready" &&
+        !transfer.encrypted && transfer.state === "ready" &&
         file.state === "ready"
       ) {
         const query = new URLSearchParams({
@@ -251,10 +253,14 @@ function renderDashboard(data: Dashboard): void {
       copy.type = "button";
       copy.className = "btn btn-primary btn-sm";
       copy.textContent = "Copy share link";
+      copy.hidden = transfer.encrypted;
 
       const copyStatus = document.createElement("p");
       copyStatus.className = "small mt-2 mb-0";
       copyStatus.setAttribute("role", "status");
+      if (transfer.encrypted) copyStatus.textContent =
+        "Use your saved complete share link to download or share. " +
+        "The server does not store the decryption key. You can enter your saved key on the share page.";
 
       copy.addEventListener("click", async () => {
         const url = new URL(

@@ -1,3 +1,4 @@
+import re
 import hashlib
 import secrets
 import sqlite3
@@ -32,9 +33,11 @@ from .client_identity import client_key
 
 from .file_store import path_parts
 
+from .encryption import EncryptionRequest, encryption_record
 from .database import connect
 from .uploads import UPLOAD_PATH
 from .storage import reserve_capacity
+from .storage import reserve_client_capacity
 from .storage import reserve_account_capacity
 from .storage import reserve_pending_capacity
 from .storage import (
@@ -45,7 +48,9 @@ from .storage import (
 
 
 MAX_FILES = 25
+ADMIN_MAX_FILES = 200
 MAX_BYTES = 5_000_000_000
+MAX_REQUEST_BYTES = 9_007_199_254_740_991
 TRANSFER_LIFETIME_SECONDS = 24 * 60 * 60
 
 router = APIRouter()
@@ -70,7 +75,7 @@ class FileRequest(BaseModel):
     size_bytes: int = Field(
         strict=True,
         ge=0,
-        le=MAX_BYTES,
+        le=MAX_REQUEST_BYTES,
     )
 
     @field_validator("name")
@@ -121,15 +126,25 @@ class FileRequest(BaseModel):
         return self
 
 class TransferRequest(BaseModel):
+    encryption: EncryptionRequest
+
     model_config = ConfigDict(extra="forbid")
 
     files: list[FileRequest] = Field(
         min_length=1,
-        max_length=MAX_FILES,
+        max_length=ADMIN_MAX_FILES,
     )
 
     @model_validator(mode="after")
     def validate_paths(self):
+        if self.encryption is not None:
+            for file in self.files:
+                if (
+                    not re.fullmatch(r"[A-Za-z0-9_-]{32}\.fv", file.name)
+                    or file.relative_path != file.name
+                    or file.size_bytes < 16
+                ):
+                    raise ValueError("Encrypted files require opaque names and authentication tags.")
         paths = [
             file.relative_path or file.name
             for file in self.files
@@ -164,10 +179,10 @@ def create_transfer(
         for file in request.files
     )
 
-    if total_bytes > MAX_BYTES:
+    if total_bytes > MAX_REQUEST_BYTES:
         raise HTTPException(
-            status_code=422,
-            detail="The combined size must be 5 GB or less.",
+            422,
+            "The transfer size exceeds the supported range.",
         )
 
     transfer_id = secrets.token_urlsafe(24)
@@ -212,20 +227,39 @@ def create_transfer(
 
             owner = optional_user(connection, http_request)
 
-            reserve_pending_capacity(
-                connection,
-                identity,
-                total_bytes,
-            )
+            is_admin = owner is not None and bool(owner[2])
+
+            if not is_admin:
+                if len(request.files) > MAX_FILES:
+                    raise HTTPException(
+                        422,
+                        "Choose no more than 25 files.",
+                    )
+
+                if total_bytes > MAX_BYTES:
+                    raise HTTPException(
+                        422,
+                        "The combined size must be 5 GB or less.",
+                    )
+
+                reserve_pending_capacity(
+                    connection,
+                    identity,
+                    total_bytes,
+                )
+                reserve_client_capacity(
+                    connection, identity, total_bytes, created_at
+                )
 
             if owner is not None:
                 require_same_origin(http_request)
 
-                reserve_account_capacity(
-                    connection,
-                    owner[0],
-                    total_bytes,
-                )
+                if not is_admin:
+                    reserve_account_capacity(
+                        connection,
+                        owner[0],
+                        total_bytes,
+                    )
             else:
                 guest_token, guest_hash = guest_identity(
                     http_request
@@ -237,7 +271,12 @@ def create_transfer(
                     total_bytes,
                 )
 
-            reserve_capacity(connection, total_bytes)
+            reserve_capacity(
+                connection,
+                total_bytes,
+                is_admin=is_admin,
+            )
+
 
             connection.execute(
                 """
@@ -257,6 +296,12 @@ def create_transfer(
                     total_bytes,
                 ),
             )
+
+            if request.encryption is not None:
+                connection.execute(
+                    "INSERT INTO transfer_encryption (transfer_id, version, manifest) VALUES (?, ?, ?)",
+                    (transfer_id, request.encryption.version, request.encryption.manifest),
+                )
 
             connection.execute(
                 """
@@ -422,6 +467,8 @@ def public_transfer(
                 (transfer_id,),
             ).fetchall()
 
+            encryption = encryption_record(connection, transfer_id)
+
             if not rows or any(row[3] != "ready" for row in rows):
                 raise HTTPException(
                     503, "Transfer unavailable."
@@ -442,6 +489,7 @@ def public_transfer(
             "created_at": created_at,
             "expires_at": expires_at,
             "state": "ready",
+            "encryption": encryption,
             "total_bytes": total_bytes,
             "files": [
                 {

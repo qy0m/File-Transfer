@@ -84,8 +84,22 @@ async function refreshStorage(): Promise<void> {
           data.account_reserved_bytes = data.reserved_bytes;
         }
 
+        const exempt =
+          !guest && data.quota_exempt === true;
+
+        if (
+          exempt
+            ? data.budget_bytes !== null
+            : (
+              typeof data.budget_bytes !== "number" ||
+              !Number.isSafeInteger(data.budget_bytes) ||
+              data.budget_bytes <= 0
+            )
+        ) {
+          throw new Error("Invalid storage response.");
+        }
+
         const keys = [
-            "budget_bytes",
             "reserved_bytes",
             "available_bytes",
             "account_reserved_bytes"
@@ -106,24 +120,36 @@ async function refreshStorage(): Promise<void> {
         const available = data.available_bytes as number;
     const account = data.account_reserved_bytes as number;
 
-    if (budget <= 0 || available > budget) {
+    if (!exempt && available > budget) {
       throw new Error("Invalid storage response.");
     }
 
     element("storage-available").textContent = size(available);
     element("storage-account").textContent = size(account);
-    element("storage-budget").textContent = size(budget);
+    element("storage-budget").textContent =
+      exempt ? "No account quota" : size(budget);
 
-    element("storage-budget-label").textContent =
-      `Your storage used: ${size(reserved)} of ${size(budget)}`;
+    element("storage-allowance").textContent = exempt
+      ? "Administrator · free disk space and pending reservations still apply."
+      : "Your upload storage allowance is 5 GB.";
+
+    element("storage-budget-label").textContent = exempt
+      ? `Your storage used or reserved: ${size(reserved)}`
+      : `Your storage used: ${size(reserved)} of ${size(budget)}`;
 
     const progress =
       element<HTMLProgressElement>("storage-progress");
 
     progress.hidden = false;
-    progress.value = Math.min(100, reserved / budget * 100);
 
-    let note = "Pending uploads reserve their full declared size.";
+    progress.value = exempt
+      ? 0
+      : Math.min(100, reserved / budget * 100);
+
+    let note = exempt
+      ? "Storage remaining is disk capacity after the safety reserve and pending uploads."
+      : "Pending uploads reserve their full declared size.";
+      
 
     if (data.reason === "transfer_limit") {
       note =

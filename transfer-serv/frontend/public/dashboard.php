@@ -1,6 +1,6 @@
 <?php
 
-$title = 'Your files - File Transfer';
+$title = 'Your files - Filevoya';
 
 header('Cache-Control: no-store');
 
@@ -8,7 +8,9 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 
-<div class="dashbaord-column">
+<div class="dashboard-column">
+<header class="page-intro">
+<span class="icon-badge tone-violet"><?php filevoya_icon('collection'); ?></span>
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
             <p class="text-uppercase text-secondary small fw-semibold">
@@ -31,6 +33,8 @@ require __DIR__ . '/../includes/header.php';
     <p class="small text-secondary">
         Keep the upload page open to resume an interrupted upload.
     </p>
+
+    </header>
 
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 my-4">
         <p

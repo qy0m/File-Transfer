@@ -77,7 +77,7 @@ function readFiles(
     data.state !== "ready" ||
     !Array.isArray(data.files) ||
     data.files.length < 1 ||
-    data.files.length > 25
+    data.files.length > 200
   ) {
     throw new Error("Invalid transfer response.");
   }
@@ -95,7 +95,7 @@ function readFiles(
       typeof item.size_bytes !== "number" ||
       !Number.isSafeInteger(item.size_bytes) ||
       item.size_bytes < 0 ||
-      item.size_bytes > 5_000_000_000
+      item.size_bytes > Number.MAX_SAFE_INTEGER
     ) {
       throw new Error("Invalid file response.");
     }
@@ -120,10 +120,12 @@ function readFiles(
     };
   });
 
-  if (
-    files.reduce((total, file) => total + file.size, 0) >
-    5_000_000_000
-  ) {
+  const totalSize = files.reduce(
+    (total, file) => total + file.size,
+    0
+  );
+
+  if (!Number.isSafeInteger(totalSize)) {
     throw new Error("Invalid transfer size.");
   }
 

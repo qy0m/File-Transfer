@@ -1,6 +1,6 @@
 <?php
 
-$title = 'Storage - File Transfer';
+$title = 'Storage - Filevoya';
 
 header('Cache-Control: no-store');
 
@@ -8,7 +8,9 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <div id="storage-page" class="row justify-content-center">
-    <div class="col-lg-8 col-xl-7">
+    <div class="col-12 site-column">
+<header class="page-intro">
+<span class="icon-badge tone-teal"><?php filevoya_icon('hdd'); ?></span>
         <p class="text-uppercase text-secondary small fw-semibold">
             Your allowance
         </p>
@@ -19,7 +21,7 @@ require __DIR__ . '/../includes/header.php';
 
         <p
             id="storage-context"
-            class="lead text-storage"
+            class="lead text-secondary"
             role="status"
         >
             Checking your storage allowance...
@@ -39,11 +41,13 @@ require __DIR__ . '/../includes/header.php';
             </button>
         </div>
 
+        </header>
+
         <?php require __DIR__ . '/../includes/storage-panel.php'; ?>
 
         <p class="small text-secondary">
             Pending uploads reserve space immediately.
-            Space become available again after uploaded files
+            Space becomes available again after uploaded files
             are deleted or removed by automatic cleanup.
         </p>
     </div>

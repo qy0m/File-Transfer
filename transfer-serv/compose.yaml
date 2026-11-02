@@ -9,21 +9,24 @@ services:
       UPLOAD_PATH: /data/uploads
       APP_ORIGIN: ${APP_ORIGIN:-http://127.0.0.1:8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-1}
-      MAX_STORAGE_BYTES: "100000000000"
-      MIN_FREE_DISK_BYTES: "5000000000"
-      MAX_STORED_TRANSFERS: "10000"
+      MAX_STORAGE_BYTES: "${MAX_STORAGE_BYTES:-100000000000}"
+      MAX_ACTIVE_BYTES_PER_CLIENT: "${MAX_ACTIVE_BYTES_PER_CLIENT:-10000000000}"
+      MAX_DAILY_BYTES_PER_CLIENT: "${MAX_DAILY_BYTES_PER_CLIENT:-20000000000}"
+      MAX_DAILY_TRANSFERS_PER_CLIENT: "${MAX_DAILY_TRANSFERS_PER_CLIENT:-100}"
+      MIN_FREE_DISK_BYTES: "${MIN_FREE_DISK_BYTES:-5000000000}"
+      MAX_STORED_TRANSFERS: "${MAX_STORED_TRANSFERS:-10000}"
       PYTHONUNBUFFERED: "1"
-      TRUSTED_PROXY_NETWORKS: "${TRUSTED_PROXY_NETWORKS:-172.18.0.0/16}"
+      TRUSTED_PROXY_NETWORKS: "${DOCKER_SUBNET:-172.30.0.0/24}"
 
     volumes:
       - type: bind
-        source: /srv/transfers/database
+        source: ${DATA_ROOT:-./var}/database
         target: /data/database
         bind:
           create_host_path: false
 
       - type: bind
-        source: /srv/transfers/uploads
+        source: ${DATA_ROOT:-./var}/uploads
         target: /data/uploads
         bind:
           create_host_path: false
@@ -102,7 +105,6 @@ services:
 
     ports:
       - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:80"
-      - "10.77.0.2:${HTTP_PORT:-8080}:80"
 
     depends_on:
       php:
@@ -111,3 +113,9 @@ services:
         condition: service_healthy
 
     restart: unless-stopped
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET:-172.30.0.0/24}

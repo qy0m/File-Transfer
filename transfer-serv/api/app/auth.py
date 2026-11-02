@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .encryption import encryption_record
 from .database import connect
 from .storage import storage_summary
 from .storage import (
@@ -96,7 +97,7 @@ def optional_user(connection, request: Request):
 
     user = connection.execute(
         """
-        SELECT u.id, u.username
+        SELECT u.id, u.username, u.is_admin
         FROM account_sessions AS s
         JOIN users AS u ON u.id = s.user_id
         WHERE s.token_hash = ? AND s.expires_at > ?
@@ -198,6 +199,13 @@ def issue_session(
         ),
     )
 
+    is_admin = bool(
+        connection.execute(
+            "SELECT is_admin FROM users WHERE id = ?",
+            (user[0],),
+        ).fetchone()[0]
+    )
+
     response = JSONResponse(
         status_code=status,
         headers={"Cache-Control": "no-store"},
@@ -205,6 +213,7 @@ def issue_session(
             "user": {
                 "id": user[0],
                 "username": user[1],
+                "is_admin": is_admin,
             },
         },
     )
@@ -248,7 +257,8 @@ def register(credentials: Credentials, request: Request):
             )
 
         connection.execute(
-            "INSERT INTO users VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (id, username, password_hash, created_at) "
+            "VALUES (?, ?, ?, ?)",
             (*user, password_hash, int(time.time())),
         )
 
@@ -374,6 +384,7 @@ def me(request: Request):
             "user": {
                 "id": user[0],
                 "username": user[1],
+                "is_admin": bool(user[2]),
             },
         },
     )
@@ -445,15 +456,17 @@ def account_transfers(
                 (row[0],),
             ).fetchall()
 
+            encrypted = encryption_record(connection, row[0]) is not None
             transfers.append({
                 "id": row[0],
+                "encrypted": encrypted,
                 "created_at": row[1],
                 "expires_at": row[2],
                 "state": row[3],
                 "total_bytes": row[4],
                 "share_path": (
                     "/transfer.php?id=" + row[0]
-                    if row[3] == "ready"
+                    if row[3] == "ready" and not encrypted
                     else None
                 ),
                 "files": [

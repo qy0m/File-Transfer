@@ -28,14 +28,25 @@ try {
 }
 
 $title = $transfer
-    ? 'Download files — File Transfer'
+    ? 'Download files — Filevoya'
     : 'Transfer unavailable';
 
 require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="reading-column">
+    <?php if ($transfer !== null): ?>
+        <div class="alert alert-secondary">
+            Encryption protects privacy; it does not make files safe.
+            Only open files from senders you trust.
+            <a href="/report.php?transfer=<?= escape($transfer['id']) ?>">Report abuse</a>
+        </div>
+    <?php endif; ?>
     <?php if ($transfer === null): ?>
+        <header class="page-intro">
+        <span class="icon-badge tone-amber">
+            <?php filevoya_icon('exclamation-circle'); ?>
+        </span>
         <h1 class="fw-bold">
             Transfer unavailable
         </h1>
@@ -47,7 +58,42 @@ require __DIR__ . '/../includes/header.php';
         <a href="/" class="btn btn-primary">
             Send your own files
         </a>
+        </header>
+    <?php elseif ($transfer['encrypted']): ?>
+        <header class="page-intro">
+            <span class="icon-badge tone-red"><?php filevoya_icon('shield-lock'); ?></span>
+            <p class="text-uppercase small fw-semibold">End-to-end encrypted transfer</p>
+            <h1 class="fw-bold">Unlock your files</h1>
+            <p>Only the complete share link can unlock these files. Decryption happens in your browser.</p>
+            <p class="small text-secondary">
+                Available until <?= escape(gmdate('Y-m-d H:i:s', $transfer['expires_at'])) ?> UTC.
+            </p>
+        </header>
+        <section id="encrypted-transfer" class="card"
+                 data-transfer-id="<?= escape($transfer['id']) ?>">
+            <div class="card-body">
+                <p id="encrypted-status" role="status">Checking the decryption key…</p>
+                <form id="encrypted-key-form" autocomplete="off">
+                    <label class="form-label" for="encrypted-key">Decryption key or complete share link</label>
+                    <input id="encrypted-key" class="form-control" type="password"
+                           autocomplete="off" spellcheck="false" required>
+                    <button class="btn btn-primary mt-3" type="submit">Unlock files</button>
+                </form>
+                <button id="encrypted-download-all" class="btn btn-primary mt-3"
+                        type="button" disabled>Download all as ZIP</button>
+                <ul id="encrypted-files" class="list-group list-group-flush mt-3"></ul>
+                <p class="small text-secondary mt-3 mb-0">
+                    Keep this page open while downloading. Downloads are decrypted and verified
+                    in chunks. Discard any partial download if verification fails.
+                </p>
+            </div>
+        </section>
+        <noscript>JavaScript is required to decrypt this transfer.</noscript>
     <?php else: ?>
+        <header class="page-intro">
+        <span class="icon-badge tone-teal">
+            <?php filevoya_icon('cloud-arrow-down'); ?>
+        </span>
         <p class="text-uppercase text-secondary small fw-semibold">
             Files shared with you
         </p>
@@ -66,6 +112,8 @@ require __DIR__ . '/../includes/header.php';
             <?= escape(gmdate('Y-m-d H:i:s', $transfer['expires_at'])) ?>
             UTC.
         </p>
+
+        </header>
 
         <?php
         require_once __DIR__ . '/../includes/folder-tree.php';

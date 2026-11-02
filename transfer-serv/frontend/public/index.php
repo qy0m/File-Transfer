@@ -1,23 +1,38 @@
 <?php
 
-$title = 'File Transfer — Upload';
+$title = 'Filevoya — Upload';
 
 require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="row justify-content-center">
-    <div class="col-lg-8 col-xl-7">
+    <div class="col-12 site-column">
+<header class="page-intro">
+<span class="icon-badge tone-red"><?php filevoya_icon('cloud-arrow-up'); ?></span>
         <p class="text-uppercase text-secondary small fw-semibold">
             Simple file sharing
         </p>
 
         <h1 class="display-5 fw-bold mb-3">
-            Send files. Share a link.
+            Send files.<br><span class="accent-text">Share a link.</span>
         </h1>
 
         <p class="lead text-secondary">
-            Choose files or a folder, with up to 25 files per transfer.
-            Your total upload allowance is 5 GB.
+            <span id="upload-file-limit">
+                Choose files or a folder, with up to 25 files per transfer.
+            </span>
+
+            <span id="upload-allowance">
+                Checking your upload allowance...
+            </span>
+        </p>
+
+        </header>
+
+        <p class="small text-secondary">
+            New transfers are end-to-end encrypted in your browser, including filenames.
+            Save the full share link: its key cannot be recovered by Filevoya.
+            Encryption overhead counts toward your storage allowance.
         </p>
 
         <section
@@ -32,13 +47,14 @@ require __DIR__ . '/../includes/header.php';
                 aria-hidden="true"
             >
                 <div>
-                    <strong>Drop files or filders here</strong>
+                    <strong>Drop files or folders here</strong>
                     <span>Review your selection before uploading</span>
                 </div>
             </div>
 
             <div class="card-body p-4">
                 <h2 id="upload-heading" class="h5 mb-3">
+                    <span class="icon-badge tone-amber"><?php filevoya_icon('folder-plus'); ?></span>
                     Select your files
                 </h2>
 
