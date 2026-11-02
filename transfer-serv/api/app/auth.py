@@ -276,8 +276,13 @@ def register(credentials: Credentials, request: Request):
 def login(credentials: Credentials, request: Request):
     require_same_origin(request)
 
-    throttle("login:client:" + client_key(request), 30, 60)
-    throttle("login:" + credentials.username, 10, 600)
+    identity = client_key(request)
+    throttle("login:client:" + identity, 30, 60)
+    throttle(
+        "login:account-client:" + identity + ":" + credentials.username,
+        10,
+        600,
+    )
 
     with connect() as connection:
         row = connection.execute(
