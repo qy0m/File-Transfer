@@ -80,10 +80,19 @@ Run npm run check, npm run build, Python syntax checks, and PHP linting.
 Then test an encrypted browser upload, a full share link in a second browser,
 individual and folder downloads, and account-owned deletion.
 
-The storage regression script is being updated for the encrypted API.
-Until that update is committed, do not use the legacy script to verify
-the current version. Test encrypted uploads, individual downloads,
-ZIP downloads, and account-owned deletion through the browser.
+After installing the API requirements and running `npm ci` and
+`npm run build`, run the encrypted storage checks on Linux from
+the `transfer-serv/` directory:
+
+    .venv/bin/python scripts/test-storage-limits.py
+
+The test requires Node.js 24 or newer. It generates encrypted requests
+using the built frontend encryption module and starts private API
+processes with temporary databases and upload directories.
+
+It checks storage reservations, transfer counts, owner deletion,
+shared-IP limits across cookies and accounts, and daily allocations
+retained after deletion. It does not target your running deployment.
 
 ## Publishing and deployment
 
