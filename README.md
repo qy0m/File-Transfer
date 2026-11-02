@@ -155,6 +155,14 @@ The relay forwards requests; the application stores uploaded files on the storag
 
 The server still processes encrypted sizes, file counts, transfer timing, account ownership, and connection information. A guest cookie tracks the guest browser's storage allowance; guest uploads do not guarantee anonymity. Connection information may appear in server or hosting-provider logs.
 
+The container defaults disable routine API, NGINX, and PHP access logs.
+Docker logs rotate at 5 MB and retain two files per container. These
+are size-based limits, not time-based retention. Diagnostic errors
+and hosting-provider logs may still contain connection metadata.
+External reverse proxies require separate logging configuration.
+These settings do not establish a no-logs or anonymity guarantee.
+Existing containers must be recreated to adopt changed logging options.
+
 Anyone with the complete share link can decrypt its files. Browser encryption depends on trustworthy code delivered by the website and the security of the browser. Expiration or deletion stops new access through Filevoya but cannot erase copies already downloaded; downloads already in progress may finish.
 
 HTTPS, WireGuard, and disk encryption are deployment choices. Building the containers does not automatically configure them. The public example uses local HTTP; public deployments must provide HTTPS. Existing unencrypted transfers are not converted automatically.

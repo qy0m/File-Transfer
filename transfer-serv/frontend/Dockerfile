@@ -30,7 +30,11 @@ COPY --from=assets /build/frontend/public/assets ./public/assets
 RUN find /var/www/html -type f -name '*.php' -print0 \
     | xargs -0 -r -n 1 php -l
 
-FROM nginx:stable-bookworm AS web
+RUN printf '%s\n' '[www]' 'access.log = /dev/null' \
+    > /usr/local/etc/php-fpm.d/zzzz-filevoya-privacy.conf \
+    && php-fpm -t
+
+    FROM nginx:stable-bookworm AS web
 
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 

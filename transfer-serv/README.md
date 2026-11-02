@@ -94,6 +94,16 @@ It checks storage reservations, transfer counts, owner deletion,
 shared-IP limits across cookies and accounts, and daily allocations
 retained after deletion. It does not target your running deployment.
 
+## Logging and privacy
+
+The container defaults disable routine API, NGINX, and PHP access logs.
+Docker logs rotate at 5 MB and retain two files per container. These
+are size-based limits, not time-based retention. Diagnostic errors
+and hosting-provider logs may still contain connection metadata.
+External reverse proxies require separate logging configuration.
+These settings do not establish a no-logs or anonymity guarantee.
+Existing containers must be recreated to adopt changed logging options.
+
 ## Publishing and deployment
 
 Keep .env, private keys, databases, uploads, logs, and backups out of Git.

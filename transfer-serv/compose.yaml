@@ -1,5 +1,10 @@
 services:
   api:
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
     build:
       context: .
       dockerfile: api/Dockerfile
@@ -49,6 +54,11 @@ services:
     restart: unless-stopped
 
   gateway:
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
     build:
       context: .
       dockerfile: gateway/Dockerfile
@@ -83,6 +93,11 @@ services:
     restart: unless-stopped
 
   php:
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
     build:
       context: .
       dockerfile: frontend/Dockerfile
@@ -98,6 +113,11 @@ services:
     restart: unless-stopped
 
   web:
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
     build:
       context: .
       dockerfile: frontend/Dockerfile
