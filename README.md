@@ -303,12 +303,25 @@ Keep the real `.env` private. `.env.example` is intended to be committed so anot
 | `MAX_ACTIVE_BYTES_PER_CLIENT` | `10000000000` | Active regular-upload allowance per client IP. |
 | `MAX_DAILY_BYTES_PER_CLIENT` | `20000000000` | Upload-byte budget per client IP per 24-hour window. |
 | `MAX_DAILY_TRANSFERS_PER_CLIENT` | `100` | Transfer budget per client IP per 24-hour window. |
+| `MAX_ACTIVE_UPLOADS` | `4` | Maximum concurrent upload-chunk requests per gateway process; accepts integers from 1 to 64. |
 
 If the example subnet overlaps another Docker, LAN, or VPN network, select an unused private subnet before starting. Compose uses `DOCKER_SUBNET` both for its network and for the API's `TRUSTED_PROXY_NETWORKS` environment setting. If you customize networks independently, update that API setting to match the actual trusted internal proxy peers.
 
 Compose maps `${DATA_ROOT}/database` to `/data/database` and `${DATA_ROOT}/uploads` to `/data/uploads`. It sets the API's `DATABASE_PATH` to `/data/database/transfers.sqlite3` and `UPLOAD_PATH` to `/data/uploads`. Changing host storage is done through `DATA_ROOT`; adding an unrelated variable to `.env` does not automatically change those container paths.
 
 Create storage directories with the correct permissions before startup. Bind mounts use `create_host_path: false`; missing directories cause startup to fail instead of silently creating a new storage location. Unlock and mount an encrypted data volume before starting the containers that use it.
+
+### Upload concurrency
+
+`MAX_ACTIVE_UPLOADS` controls concurrent upload-chunk requests per gateway process. Compose defaults to four. Increase this value only
+after measuring memory use, storage performance, and throughput on your deployment. Reverse-proxy limits are configured separately.
+
+The uploader retries chunk requests receiving HTTP 429 or 503 up to seven times, using randomized delays and respecting `Retry-After`,
+within a 60-second retry window. Individual request timeouts still apply. Transfer creation is not automatically replayed. If automatic
+retries are exhausted, keep the page open and use Resume upload.
+
+A configured concurrency limit is not a throughput guarantee.
+Server-local capacity tests do not measure internet or relay performance.
 
 ### Public HTTPS and relay configuration
 

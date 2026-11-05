@@ -1,6 +1,7 @@
 import { prepareEncryptedDownloads } from "./encrypted-download.js";
 import { createEncryptionPlan, encryptedChunk, wireSize, WIRE_CHUNK, PLAIN_CHUNK, type EncryptionPlan } from "./encryption.js";
 import { collectDroppedFiles } from "./file-drop.js";
+import { fetchChunkWithRetry } from "./upload-retry.js";
 
 const MAX_FILES = 25;
 const ADMIN_MAX_FILES = 200;
@@ -76,20 +77,33 @@ function errorDetail(
 async function api(
   path: string,
   options: RequestInit = {},
-  timeoutMs = 30_000
+  timeoutMs = 30_000,
+  onBusy?: (seconds: number) => void
 ): Promise<unknown> {
   const headers = new Headers(options.headers);
   headers.set("X-Requested-With", "transfer-serv");
 
-  const response = await fetch(`/api${path}`, {
+  const send = () => fetch(`/api${path}`, {
     ...options,
     headers,
     cache: "no-store",
     signal: AbortSignal.timeout(timeoutMs)
   });
 
+  const response = onBusy
+    ? await fetchChunkWithRetry(send, onBusy)
+    : await send();
 
-  const body: unknown = await response.json();
+  let body: unknown;
+
+  try {
+    body = await response.json();
+  } catch {
+    if (response.ok) {
+      throw new Error("Invalid server response.");
+    }
+    body = null;
+  }
 
   if (!response.ok) {
     throw new ApiError(
@@ -759,7 +773,10 @@ function initializeUploader(): void {
               },
               body: data
             },
-            120_000
+            120_000,
+            seconds => message(
+              `Server busy. Retrying in about ${seconds} seconds. Keep this page open.`
+            )
           );
 
           if (

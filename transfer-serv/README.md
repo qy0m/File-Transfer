@@ -94,6 +94,22 @@ It checks storage reservations, transfer counts, owner deletion,
 shared-IP limits across cookies and accounts, and daily allocations
 retained after deletion. It does not target your running deployment.
 
+## Upload concurrency
+
+`MAX_ACTIVE_UPLOADS` controls concurrent upload-chunk requests per
+gateway process. Compose defaults to four. Increase this value only
+after measuring memory use, storage performance, and throughput on
+your deployment. Reverse-proxy limits are configured separately.
+
+The uploader retries chunk requests receiving HTTP 429 or 503 up to
+seven times, using randomized delays and respecting `Retry-After`,
+within a 60-second retry window. Individual request timeouts still
+apply. Transfer creation is not automatically replayed. If automatic
+retries are exhausted, keep the page open and use Resume upload.
+
+A configured concurrency limit is not a throughput guarantee.
+Server-local capacity tests do not measure internet or relay performance.
+
 ## Logging and privacy
 
 The container defaults disable routine API, NGINX, and PHP access logs.

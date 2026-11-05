@@ -13,7 +13,17 @@ const host = process.env.HOST ?? "0.0.0.0";
 
 const MAX_METADATA_BYTES = 1024 * 1024;
 const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
-const MAX_ACTIVE_UPLOADS = 4;
+
+const MAX_ACTIVE_UPLOADS = Number(process.env.MAX_ACTIVE_UPLOADS ?? "4");
+
+if (
+  !Number.isInteger(MAX_ACTIVE_UPLOADS) ||
+  MAX_ACTIVE_UPLOADS < 1 ||
+  MAX_ACTIVE_UPLOADS > 64
+) {
+  throw new Error("MAX_ACTIVE_UPLOADS must be an integer from 1 to 64.");
+}
+
 let activeUploads = 0;
 const ID = "[A-Za-z0-9_-]{32}";
 

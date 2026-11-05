@@ -68,6 +68,7 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       NODE_ENV: production
+      MAX_ACTIVE_UPLOADS: "${MAX_ACTIVE_UPLOADS:-4}"
 
     depends_on:
       api:
