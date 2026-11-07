@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class EncryptionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    version: int = Field(strict=True, ge=1, le=1)
+    version: int = Field(strict=True, ge=2, le=2)
     manifest: str = Field(strict=True, min_length=40, max_length=524288)
 
     @field_validator("manifest")

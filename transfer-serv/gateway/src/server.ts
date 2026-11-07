@@ -12,7 +12,7 @@ const port = Number(process.env.PORT ?? "3000");
 const host = process.env.HOST ?? "0.0.0.0";
 
 const MAX_METADATA_BYTES = 1024 * 1024;
-const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
+const MAX_CHUNK_BYTES = 16 * 1024 * 1024;
 
 const MAX_ACTIVE_UPLOADS = Number(process.env.MAX_ACTIVE_UPLOADS ?? "4");
 

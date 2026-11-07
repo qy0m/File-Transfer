@@ -24,7 +24,7 @@ from .storage import UPLOAD_PATH, ensure_free_space, PENDING_IDLE_SECONDS
 
 
 
-MAX_CHUNK_BYTES = 8 * 1024 * 1024
+MAX_CHUNK_BYTES = 16 * 1024 * 1024
 
 
 ID_PATTERN = r"^[A-Za-z0-9_-]{32}$"
@@ -152,7 +152,7 @@ def save_chunk(transfer_id, file_id, token, offset, data):
                 )
 
             if len(data) > MAX_CHUNK_BYTES:
-                raise HTTPException(413, "Chunk exceeds 8 MiB.")
+                raise HTTPException(413, "Chunk exceeds 16 MiB.")
 
             new_received = received + len(data)
 
@@ -315,7 +315,7 @@ async def upload_chunk(
             raise HTTPException(400, "Invalid Content-Length.")
 
         if int(length) > MAX_CHUNK_BYTES:
-            raise HTTPException(413, "Chunk exceeds 8 MiB.")
+            raise HTTPException(413, "Chunk exceeds 16 MiB.")
 
     data = bytearray()
 
@@ -324,7 +324,7 @@ async def upload_chunk(
             async for chunk in request.stream():
                 if len(data) + len(chunk) > MAX_CHUNK_BYTES:
                     raise HTTPException(
-                        413, "Chunk exceeds 8 MiB."
+                        413, "Chunk exceeds 16 MiB."
                     )
 
                 data.extend(chunk)

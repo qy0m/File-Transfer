@@ -19,7 +19,7 @@ type DownloadJob = {
 
 const downloadJobs = new Map<string, DownloadJob>();
 const textEncoder = new TextEncoder();
-const BLOCK = 8 * 1024 * 1024 - 16;
+const BLOCK = 16 * 1024 * 1024 - 16;
 
 scope.addEventListener(
   "install",
@@ -53,7 +53,7 @@ scope.addEventListener("message", event => {
 
     if (
       !data ||
-      data.type !== "encrypted-download" ||
+      data.type !== "encrypted-download-v2" ||
       !/^[A-Za-z0-9_-]{32}$/.test(data.transfer) ||
       !/^[A-Za-z0-9_-]{48}$/.test(data.token) ||
       !Array.isArray(data.files) ||
@@ -173,7 +173,7 @@ async function* decryptFile(
             iv,
             tagLength: 128,
             additionalData: textEncoder.encode(
-              `filevoya:v1:${file.opaque}:${file.size}:${index}`
+              `filevoya:v2:${file.opaque}:${file.size}:${index}`
             )
           },
           file.key,

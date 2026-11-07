@@ -21,6 +21,54 @@ Regular accounts and guest browsers have a 5 GB storage allowance, with up to
 24 hours; incomplete uploads expire after 15 minutes without a successful chunk.
 Accounts support transfer management and password changes; passwords use Argon2.
 
+## Encryption format 2: 16 MiB chunks
+
+New uploads use **format version 2**, with one encrypted chunk of up to
+**16 MiB per request**, including its 16-byte AES-GCM authentication tag.
+A full chunk contains `16 * 1024 * 1024 - 16` plaintext bytes. Empty files
+and the final partial chunk are authenticated as well.
+
+Individual files are decrypted in the browser. Encrypted ZIP downloads
+must be started from the unlocked share page; the browser decrypts the
+files and assembles the archive. Transfer pages recognize the presence
+of encrypted metadata instead of routing unfamiliar encryption versions
+to ordinary server downloads. The browser still validates format 2.
+
+The generic Compose default remains **four concurrent upload requests per
+gateway process**. The reference deployment uses `MAX_ACTIVE_UPLOADS=10`
+and has passed ten-client upload and ciphertext-download checks through
+its HTTPS relay. Capacity and throughput depend on the deployment;
+16 MiB chunks increase memory requirements per active request.
+
+### Upgrading an existing version-1 installation
+
+**This is a breaking encrypted-format change. Version-1 encrypted transfers
+are not readable by the version-2 browser code and are not converted automatically.**
+
+1. Stop new uploads and save consistent, encrypted backups of the database,
+   stored uploads, configuration, and the previously working application.
+   Verify that rollback images can be inspected and started before stopping
+   the running containers.
+2. Let old transfers expire and run cleanup, or deliberately remove them
+   through the existing transfer-deletion tools. Before upgrading a
+   version-1 database, verify that `transfers`, `files`, and
+   `transfer_encryption` are empty and old upload files have been removed.
+   **Keep the SQLite database file: it also contains user accounts.**
+3. Update the API, gateway, PHP pages, browser modules, and service worker
+   together. Startup upgrades the empty encryption table to version 2
+   while retaining accounts and account-session records. It refuses the
+   version-1 upgrade if old transfer records remain.
+4. Allow bodies of at least **16 MiB** at every reverse proxy; for NGINX,
+   use `client_max_body_size 16m;` or a larger proxy limit. The API and
+   gateway enforce their own 16 MiB chunk limit. Preserve private host
+   bindings, storage mounts, and trusted-proxy settings.
+5. Hard-refresh the browser after deployment. Check sign-in, then upload a
+   file larger than 32 MiB and verify the actual contents of both its
+   individual download and its browser-generated ZIP download.
+
+Older cached upload pages send version-1 metadata and are rejected by
+the updated API. Open the refreshed site and start a new upload.
+
 ## Required filenames before setup
 
 This upload includes three filenames with a leading `!` as a workaround for uploading hidden files.

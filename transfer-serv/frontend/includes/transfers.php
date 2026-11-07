@@ -237,7 +237,7 @@ function transfer_lookup(string $id): array
         'expires_at' => $data['expires_at'],
         'total_bytes' => $total,
         'files' => $files,
-        'encrypted' => ($data['encryption']['version'] ?? null) === 1,
+        'encrypted' => isset($data['encryption']),
     ];
 }
 

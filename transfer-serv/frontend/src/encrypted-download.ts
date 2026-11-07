@@ -104,7 +104,7 @@ async function initialize(panel: HTMLElement): Promise<void> {
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {
           channel.port1.close();
-          reject(new Error("Download preparation timed out."));
+          reject(new Error("Download preparation timed out. Refresh this page and retry."));
         }, 10000);
 
         channel.port1.onmessage = event => {
@@ -130,7 +130,7 @@ async function initialize(panel: HTMLElement): Promise<void> {
         };
 
         worker.postMessage({
-          type: "encrypted-download",
+          type: "encrypted-download-v2",
           transfer,
           files: entries,
           token,
@@ -177,7 +177,7 @@ async function initialize(panel: HTMLElement): Promise<void> {
 
       if (
         metadata.id !== transfer ||
-        metadata.encryption?.version !== 1 ||
+        metadata.encryption?.version !== 2 ||
         typeof metadata.encryption.manifest !== "string" ||
         !Array.isArray(metadata.files)
       ) {

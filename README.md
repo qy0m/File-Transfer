@@ -40,6 +40,54 @@ The frontend uses core PHP and TypeScript without Vite. Docker Compose runs four
 
 > **Save the complete share link, including its `#key=...` fragment.** The server does not store the decryption key and cannot recreate a lost complete link from your account dashboard.
 
+## Encryption format 2: 16 MiB chunks
+
+New uploads use **format version 2**, with one encrypted chunk of up to
+**16 MiB per request**, including its 16-byte AES-GCM authentication tag.
+A full chunk contains `16 * 1024 * 1024 - 16` plaintext bytes. Empty files
+and the final partial chunk are authenticated as well.
+
+Individual files are decrypted in the browser. Encrypted ZIP downloads
+must be started from the unlocked share page; the browser decrypts the
+files and assembles the archive. Transfer pages recognize the presence
+of encrypted metadata instead of routing unfamiliar encryption versions
+to ordinary server downloads. The browser still validates format 2.
+
+The generic Compose default remains **four concurrent upload requests per
+gateway process**. The reference deployment uses `MAX_ACTIVE_UPLOADS=10`
+and has passed ten-client upload and ciphertext-download checks through
+its HTTPS relay. Capacity and throughput depend on the deployment;
+16 MiB chunks increase memory requirements per active request.
+
+### Upgrading an existing version-1 installation
+
+**This is a breaking encrypted-format change. Version-1 encrypted transfers
+are not readable by the version-2 browser code and are not converted automatically.**
+
+1. Stop new uploads and save consistent, encrypted backups of the database,
+   stored uploads, configuration, and the previously working application.
+   Verify that rollback images can be inspected and started before stopping
+   the running containers.
+2. Let old transfers expire and run cleanup, or deliberately remove them
+   through the existing transfer-deletion tools. Before upgrading a
+   version-1 database, verify that `transfers`, `files`, and
+   `transfer_encryption` are empty and old upload files have been removed.
+   **Keep the SQLite database file: it also contains user accounts.**
+3. Update the API, gateway, PHP pages, browser modules, and service worker
+   together. Startup upgrades the empty encryption table to version 2
+   while retaining accounts and account-session records. It refuses the
+   version-1 upgrade if old transfer records remain.
+4. Allow bodies of at least **16 MiB** at every reverse proxy; for NGINX,
+   use `client_max_body_size 16m;` or a larger proxy limit. The API and
+   gateway enforce their own 16 MiB chunk limit. Preserve private host
+   bindings, storage mounts, and trusted-proxy settings.
+5. Hard-refresh the browser after deployment. Check sign-in, then upload a
+   file larger than 32 MiB and verify the actual contents of both its
+   individual download and its browser-generated ZIP download.
+
+Older cached upload pages send version-1 metadata and are rejected by
+the updated API. Open the refreshed site and start a new upload.
+
 ## 🚀 Features
 
 | Feature | Description |
@@ -74,7 +122,7 @@ These are the current regular-upload defaults. GB values use decimal bytes; encr
 | Files per regular transfer | 25 |
 | Files per administrator transfer | 200 |
 | Transfer lifetime | 24 hours from creation |
-| Maximum encrypted upload chunk | 8 MiB, including its 16-byte authentication tag |
+| Maximum encrypted upload chunk | 16 MiB, including its 16-byte authentication tag |
 | Pending regular transfers per client IP | 3, reserving at most 5 GB combined |
 | Pending upload inactivity timeout | 15 minutes since creation or the last successful chunk |
 | Transfer creation attempts per client IP | 10 per minute |
@@ -125,7 +173,7 @@ flowchart TB
     api --> uploads["Storage: encrypted file contents"]
 ```
 
-The relay forwards requests; the application stores uploaded files on the storage server. New encrypted transfers are decrypted by the recipient's browser. PHP and FastAPI stream stored encrypted bytes rather than decrypting those transfers. For encrypted ZIP downloads, the browser assembles the archive after decrypting the selected files. Legacy unencrypted transfers retain their existing download paths until they expire.
+The relay forwards requests; the application stores uploaded files on the storage server. New encrypted transfers are decrypted by the recipient's browser. PHP and FastAPI stream stored encrypted bytes rather than decrypting those transfers. For encrypted ZIP downloads, the browser assembles the archive after decrypting the selected files. See the format-2 migration notes before upgrading an existing version-1 installation.
 
 <a id="security"></a>
 
@@ -165,7 +213,7 @@ Existing containers must be recreated to adopt changed logging options.
 
 Anyone with the complete share link can decrypt its files. Browser encryption depends on trustworthy code delivered by the website and the security of the browser. Expiration or deletion stops new access through Filevoya but cannot erase copies already downloaded; downloads already in progress may finish.
 
-HTTPS, WireGuard, and disk encryption are deployment choices. Building the containers does not automatically configure them. The public example uses local HTTP; public deployments must provide HTTPS. Existing unencrypted transfers are not converted automatically.
+HTTPS, WireGuard, and disk encryption are deployment choices. Building the containers does not automatically configure them. The public example uses local HTTP; public deployments must provide HTTPS. Version-1 encrypted transfers are not converted automatically; follow the format-2 migration notes.
 
 ## 🌐 Browser requirements
 
@@ -341,7 +389,7 @@ sudo docker compose exec web nginx -t
 sudo docker compose logs --no-color --tail=100 api gateway php web
 ```
 
-After updating the source and reviewing your local configuration:
+For routine updates after the format-2 migration, update the source and review your local configuration:
 
 ```bash
 sudo docker compose config --quiet

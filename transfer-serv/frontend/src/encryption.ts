@@ -1,5 +1,5 @@
-/* Filevoya E2EE v1: independent AES-256-GCM file keys: authenticated framing. */
-export const PLAIN_CHUNK = 8 * 1024 * 1024 - 16;
+/* Filevoya E2EE v2: independent AES-256-GCM file keys: authenticated framing. */
+export const PLAIN_CHUNK = 16 * 1024 * 1024 - 16;
 export const WIRE_CHUNK = PLAIN_CHUNK + 16;
 const encoder = new TextEncoder();
 
@@ -12,7 +12,7 @@ export type SecretFile = {
 
 export type EncryptionPlan = {
     key: string;
-    encryption: { version: 1; manifest: string };
+    encryption: { version: 2; manifest: string };
     files: SecretFile[];
     keys: CryptoKey[];
 };
@@ -83,7 +83,7 @@ export function chunkParameters(
         iv,
         tagLength: 128,
         additionalData: encoder.encode(
-            `filevoya:v1:${file.opaque}:${file.size}:${index}`
+            `filevoya:v2:${file.opaque}:${file.size}:${index}`
         )
     };
 }
@@ -142,10 +142,10 @@ export async function createEncryptionPlan(
                 name: "AES-GCM",
                 iv,
                 tagLength: 128,
-                additionalData: encoder.encode("filevoya:manifest:v1")
+                additionalData: encoder.encode("filevoya:manifest:v2")
             },
             key,
-            encoder.encode(JSON.stringify({ version: 1, files: secrets }))
+            encoder.encode(JSON.stringify({ version: 2, files: secrets }))
         )
     );
     
@@ -155,7 +155,7 @@ export async function createEncryptionPlan(
 
     return {
         key: encode64(rawKey),
-        encryption: { version: 1, manifest: encode64(packed) },
+        encryption: { version: 2, manifest: encode64(packed) },
         files: secrets,
         keys: await Promise.all(
             secrets.map(file =>
@@ -220,7 +220,7 @@ export async function decryptManifest(
             name: "AES-GCM",
             iv: raw.slice(0, 12),
             tagLength: 128,
-            additionalData: encoder.encode("filevoya:manifest:v1")
+            additionalData: encoder.encode("filevoya:manifest:v2")
         },
         await importKey(decode64(key), ["decrypt"]),
         raw.slice(12)
@@ -232,7 +232,7 @@ export async function decryptManifest(
 
     if (
         !result ||
-        result.version !== 1 ||
+        result.version !== 2 ||
         !Array.isArray(result.files) ||
         result.files.length < 1 ||
         result.files.length > 200

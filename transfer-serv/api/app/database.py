@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS transfers (
 
 CREATE TABLE IF NOT EXISTS transfer_encryption (
     transfer_id TEXT PRIMARY KEY REFERENCES transfers(id) ON DELETE CASCADE,
-    version INTEGER NOT NULL CHECK(version = 1),
+    version INTEGER NOT NULL CHECK(version = 2),
     manifest TEXT NOT NULL
 );
 
@@ -171,6 +171,39 @@ def initialize_database() -> None:
 
         # Serialize schema upgrades across API workers.
         connection.execute("BEGIN IMMEDIATE")
+
+        # Upgrade the encryption table only when old transfers are absent.
+        encryption_schema = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE name = 'transfer_encryption'"
+        ).fetchone()[0]
+        normalized = "".join(encryption_schema.lower().split())
+
+        if "check(version=1)" in normalized:
+            if (
+                connection.execute(
+                    "SELECT 1 FROM transfers LIMIT 1"
+                ).fetchone()
+                or connection.execute(
+                    "SELECT 1 FROM transfer_encryption LIMIT 1"
+                ).fetchone()
+            ):
+                raise RuntimeError(
+                    "The 16 MiB format upgrade requires all old "
+                    "transfers to be removed first."
+                )
+
+            connection.execute("DROP TABLE transfer_encryption")
+            connection.execute("""
+                CREATE TABLE transfer_encryption (
+                    transfer_id TEXT PRIMARY KEY
+                        REFERENCES transfers(id) ON DELETE CASCADE,
+                    version INTEGER NOT NULL CHECK(version = 2),
+                    manifest TEXT NOT NULL
+                )
+            """)
+
+        elif "check(version=2)" not in normalized:
+            raise RuntimeError("Unsupported transfer encryption schema.")
 
         columns = {
             row[1]
