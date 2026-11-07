@@ -1,6 +1,6 @@
 <?php
 
-$title = 'About — Filevoya';
+$title = 'About — Transfer Service';
 $pageStylesheets = ['/assets/css/about.css'];
 
 require __DIR__ . '/../includes/header.php';
@@ -42,7 +42,7 @@ $features = [
     <header class="about-hero">
         <span class="about-eyebrow">
             <?php filevoya_about_icon('cloud-arrow-up'); ?>
-            About Filevoya
+            About Transfer Service
         </span>
 
         <h1>
@@ -64,7 +64,7 @@ $features = [
 
             <a
                 class="btn btn-outline-primary"
-                href="https://github.com/qy0m/File-Transfer"
+                href="https://example.com/source"
                 rel="noreferrer"
             >
                 <?php filevoya_about_icon('github'); ?>
@@ -187,7 +187,7 @@ $features = [
                 <p class="about-muted mb-0">
                     Anyone with a share link can download its available
                     files. Expiration or deletion stops access through
-                    Filevoya; it cannot remove copies someone has
+                    Transfer Service; it cannot remove copies someone has
                     already downloaded.
                 </p>
             </div>
@@ -210,8 +210,7 @@ $features = [
             <p class="mb-0">
                 New browser uploads are end-to-end encrypted,
                 including file contents, names, and folder paths. The full
-                share link contains the key; Filevoya cannot recover it.
-                Older transfers remain unencrypted until they expire.
+                share link contains the key; Transfer Service cannot recover it.
                 The server still sees encrypted sizes, file counts, account
                 ownership, and connection information. Encryption relies on
                 trustworthy browser code delivered by this website.

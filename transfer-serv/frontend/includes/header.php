@@ -25,12 +25,12 @@ function filevoya_icon(string $name, string $class = 'site-icon'): void
         aria-hidden="true"
         focusable="false"
     >
-        <use href="/assets/icons/filevoya-icons.svg#<?= escape($name) ?>"></use>
+        <use href="/assets/icons/site-icons.svg#<?= escape($name) ?>"></use>
     </svg>
     <?php
 }
 
-$title = $title ?? 'Filevoya';
+$title = $title ?? 'Transfer Service';
 ?>
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
@@ -43,6 +43,8 @@ $title = $title ?? 'Filevoya';
     >
 
     <title><?= escape($title) ?></title>
+
+    <?php require __DIR__ . "/metadata.php"; ?>
 
     <link
         rel="stylesheet"
@@ -70,7 +72,7 @@ $title = $title ?? 'Filevoya';
     <div class="container">
         <a class="navbar-brand fw-bold" href="/">
             <?php filevoya_icon('cloud-arrow-up'); ?>
-            Filevoya
+            Transfer Service
         </a>
 
         <div class="site-nav-links">

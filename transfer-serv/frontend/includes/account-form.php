@@ -3,8 +3,8 @@
 $register = ($accountMode ?? 'login') === 'register';
 
 $title = $register
-    ? 'Create account — Filevoya'
-    : 'Sign in — Filevoya';
+    ? 'Create account — Transfer Service'
+    : 'Sign in — Transfer Service';
 
 header('Cache-Control: no-store');
 
@@ -113,6 +113,13 @@ require __DIR__ . '/header.php';
                             required
                         >
                     </div>
+                <?php endif; ?>
+
+                <?php if ($register): ?>
+                    <p class="small text-secondary">
+                        Creating an account is subject to our
+                        <a href="/terms.php">Terms of Service</a>.
+                    </p>
                 <?php endif; ?>
 
                 <button

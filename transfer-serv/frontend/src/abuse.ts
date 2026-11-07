@@ -14,11 +14,11 @@ function reportTransferId(value: string): string {
 
   if (
     url.protocol !== "https:" ||
-    ![location.origin, "https://www.filevoya.site"].includes(url.origin) ||
+    url.origin !== location.origin ||
     url.pathname !== "/transfer.php" ||
     url.searchParams.getAll("id").length !== 1
   ) {
-    throw new Error("Enter a Filevoya share link or its transfer ID.");
+    throw new Error("Enter a Transfer Service share link or its transfer ID.");
   }
 
   const id = url.searchParams.get("id") ?? "";
@@ -40,6 +40,9 @@ if (reportForm) {
   const category = document.getElementById(
     "abuse-category"
   ) as HTMLSelectElement;
+  const description = document.getElementById(
+    "abuse-description"
+  ) as HTMLTextAreaElement;
   const button = document.getElementById(
     "abuse-submit"
   ) as HTMLButtonElement;
@@ -58,6 +61,12 @@ if (reportForm) {
       try {
         const id = reportTransferId(input.value);
         input.value = id;
+        const details = description.value.trim();
+        if (details.length > 2000 || /[?#&]\s*key\s*=/i.test(details)) {
+          throw new Error(
+            "Use at most 2,000 characters and remove decryption keys from the description."
+          );
+        }
         status.textContent = "Submitting report…";
 
         const response = await fetch("/api/abuse/reports", {
@@ -72,7 +81,8 @@ if (reportForm) {
           },
           body: JSON.stringify({
             transfer_id: id,
-            category: category.value
+            category: category.value,
+            description: details
           })
         });
 
@@ -80,6 +90,8 @@ if (reportForm) {
           throw new Error(
             response.status === 429
               ? "Too many reports. Please try again later."
+              : response.status === 422
+                ? "Check the report fields. The description must be at most 2,000 characters and contain no decryption keys or control characters."
               : response.status === 404
                 ? "That transfer is unavailable or has expired."
                 : "Could not submit the report. Please try again later."

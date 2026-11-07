@@ -1,5 +1,6 @@
-"""Key-free abuse reports and terminal-only moderation."""
+"""Abuse reports with optional descriptions and terminal-only moderation."""
 import argparse
+import json
 import re
 import secrets
 import time
@@ -7,7 +8,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .auth import require_same_origin, throttle
 from .client_identity import client_key
@@ -25,8 +26,20 @@ class AbuseReport(BaseModel):
         pattern=r"^[A-Za-z0-9_-]{32}$",
     )
     category: Literal[
-        "malware", "phishing", "illegal", "privacy", "indecent", "other"
+        "malware", "phishing", "illegal", "privacy", "indecent", "copyright", "other"
     ]
+
+    description: str = Field(default="", strict=True, max_length=2000)
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        value = value.replace("\r\n", "\n").replace("\r", "\n").strip()
+        if re.search(r"[?#&]\s*key\s*=", value, re.IGNORECASE):
+            raise ValueError("Remove decryption keys from the description.")
+        if any(ord(c) < 32 and c not in "\n\t" for c in value):
+            raise ValueError("Unsupported control character in description.")
+        return value
 
 
 @router.post("/abuse/reports")
@@ -83,12 +96,13 @@ def submit_report(body: AbuseReport, request: Request):
 
         connection.execute(
             "INSERT OR IGNORE INTO abuse_reports "
-            "(id, transfer_id, category, reporter_hash, created_at, status) "
-            "VALUES (?, ?, ?, ?, ?, 'open')",
+            "(id, transfer_id, category, description, reporter_hash, created_at, status) "
+            "VALUES (?, ?, ?, ?, ?, ?, 'open')",
             (
                 secrets.token_urlsafe(24),
                 body.transfer_id,
                 body.category,
+                body.description,
                 identity,
                 now,
             ),
@@ -111,6 +125,10 @@ def main():
         "list",
         help="Show the latest 50 open reports from the last 30 days.",
     )
+    commands.add_parser(
+        "show",
+        help="Show one report, including its optional description.",
+    ).add_argument("id")
     commands.add_parser(
         "disable",
         help="Block new downloads/uploads for a transfer.",
@@ -157,6 +175,24 @@ def main():
                 f"{len(rows)} report(s). "
                 "Reports alone do not trigger removal."
             )
+
+        elif args.action == "show":
+            row = connection.execute(
+                "SELECT transfer_id, category, created_at, description "
+                "FROM abuse_reports WHERE id = ?",
+                (args.id,),
+            ).fetchone()
+            if row is None:
+                print("Report not found or expired.")
+            else:
+                print("REPORT_ID", args.id)
+                print("TRANSFER_ID", row[0])
+                print("CATEGORY", row[1])
+                print("CREATED_UTC", time.strftime(
+                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime(row[2])
+                ))
+                # Escape control characters and Unicode for safe terminal output.
+                print("DESCRIPTION", json.dumps(row[3], ensure_ascii=True))
 
         elif args.action == "resolve":
             result = connection.execute(

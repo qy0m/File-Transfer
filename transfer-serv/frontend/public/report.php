@@ -1,5 +1,5 @@
 <?php
-$title = 'Report abuse - Filevoya';
+$title = 'Report abuse - Transfer Service';
 header('Cache-Control: no-store');
 header('Referrer-Policy: no-referrer');
 header('X-Robots-Tag: noindex');
@@ -35,13 +35,15 @@ if (
                 or violate another person's privacy or rights.
             </p>
             <p>
-                Reports contain only a transfer ID and a category.
-                If you paste a full share link. its decryption key is removed
+                Reports contain a transfer ID, a category, and any optional
+                description you provide. The description is stored as text
+                that administrators can read; it is not end-to-end encrypted.
+                If you paste a full share link in the link field, its key is removed
                 in your browser before submission.
                 Do not send file contents or decryption keys.
             </p>
             <p>
-                Filevoya cannot inspect end-to-end encrypted file contents.
+                Transfer Service cannot inspect end-to-end encrypted file contents.
                 An administrator can disable a transfer without decrypting it.
                 Reports are scheduled for deletion after 30 days.
                 A hash derived from the reporting connection's IP address
@@ -77,9 +79,29 @@ if (
                     <option value="phishing">Phishing or fraud</option>
                     <option value="illegal">Unlawful content</option>
                     <option value="indecent">Indecent material</option>
+                    <option value="copyright">Copyright infringement</option>
                     <option value="privacy">Privacy or right violation</option>
                     <option value="other">Other abuse</option>
                 </select>
+
+                <label class="form-label" for="abuse-description">
+                    Description (optional)
+                </label>
+                <textarea
+                    id="abuse-description"
+                    class="form-control mb-2"
+                    rows="5"
+                    maxlength="2000"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-describedby="abuse-description-help"
+                ></textarea>
+                <p id="abuse-description-help" class="small text-secondary mb-3">
+                    Up to 2,000 characters. Briefly explain the issue.
+                    Do not include decryption keys, passwords, personal
+                    information, or file contents. Include copyrighted work
+                    details only as needed to identify the alleged infringement.
+                </p>
 
                 <button
                     id="abuse-submit"

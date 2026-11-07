@@ -1,6 +1,6 @@
 <?php
 
-$title = 'Filevoya — Upload';
+$title = 'Transfer Service — Upload';
 
 require __DIR__ . '/../includes/header.php';
 ?>
@@ -31,7 +31,7 @@ require __DIR__ . '/../includes/header.php';
 
         <p class="small text-secondary">
             New transfers are end-to-end encrypted in your browser, including filenames.
-            Save the full share link: its key cannot be recovered by Filevoya.
+            Save the full share link: its key cannot be recovered by Transfer Service.
             Encryption overhead counts toward your storage allowance.
         </p>
 
@@ -138,6 +138,11 @@ require __DIR__ . '/../includes/header.php';
                     id="file-list"
                     class="list-group list-group-flush mb-3"
                 ></ul>
+
+                <p class="small text-secondary">
+                    Uploading files is subject to our
+                    <a href="/terms.php">Terms of Service</a>.
+                </p>
 
                 <button
                     id="upload-button"

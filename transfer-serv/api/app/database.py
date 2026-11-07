@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS abuse_reports (
     id TEXT PRIMARY KEY,
     transfer_id TEXT NOT NULL,
     category TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 2000),
     reporter_hash TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'resolved')),
@@ -171,6 +172,16 @@ def initialize_database() -> None:
 
         # Serialize schema upgrades across API workers.
         connection.execute("BEGIN IMMEDIATE")
+
+        report_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(abuse_reports)")
+        }
+        if "description" not in report_columns:
+            connection.execute(
+                "ALTER TABLE abuse_reports ADD COLUMN description "
+                "TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 2000)"
+            )
 
         # Upgrade the encryption table only when old transfers are absent.
         encryption_schema = connection.execute(
